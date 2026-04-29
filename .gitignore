@@ -1,0 +1,41 @@
+# Secrets / 환경설정
+.env
+.env.*
+!.env.example
+
+# 개인정보 (실제 카드 명세서 샘플)
+samples/
+!samples/.gitkeep
+
+# Superpowers 시각 컴패니언 작업 디렉토리
+.superpowers/
+
+# 상위 설계 문서 사본 (원본은 ~/.gstack/projects/acceptha-spendLens/ 에 있음)
+hattuping-main-design-*.md
+
+# Claude Code 개인 설정
+.claude/settings.local.json
+
+# Node / pnpm
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+!.vscode/extensions.json
