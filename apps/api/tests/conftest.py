@@ -35,6 +35,15 @@ async def test_db_pool():
     await pool.close()
 
 
+@pytest.fixture(scope="session", autouse=True)
+async def _init_app_pool(test_db_pool):
+    """Make app.db._pool point at test_db_pool so route handlers can use acquire()."""
+    import app.db
+    app.db._pool = test_db_pool
+    yield
+    app.db._pool = None
+
+
 @pytest.fixture(autouse=True)
 async def reset_tables(test_db_pool):
     """각 테스트 전 모든 테이블을 비움. CASCADE로 의존성 해결."""
