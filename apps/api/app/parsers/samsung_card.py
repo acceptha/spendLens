@@ -1,6 +1,8 @@
 import openpyxl
 import re
-from typing import Iterable
+from datetime import date as _date, datetime, time
+from decimal import Decimal, InvalidOperation
+from typing import Any, Iterable
 
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -54,3 +56,92 @@ def mask_pan(pan: str | None) -> tuple[str, str]:
     last4 = digits[-4:] if len(digits) >= 4 else ""
     masked = f"****-****-****-{last4}" if last4 else "****-****-****-****"
     return masked, last4
+
+
+def _to_date(v: Any) -> _date:
+    if isinstance(v, _date) and not isinstance(v, datetime):
+        return v
+    if isinstance(v, datetime):
+        return v.date()
+    if isinstance(v, str):
+        return datetime.strptime(v, "%Y-%m-%d").date()
+    raise ValueError(f"unparseable date: {v!r}")
+
+
+def _to_time(v: Any) -> time | None:
+    if v is None or v == "":
+        return None
+    if isinstance(v, time):
+        return v
+    if isinstance(v, datetime):
+        return v.time()
+    if isinstance(v, str):
+        for fmt in ("%H:%M:%S", "%H:%M"):
+            try:
+                return datetime.strptime(v, fmt).time()
+            except ValueError:
+                continue
+        return None
+    return None
+
+
+def _to_decimal(v: Any) -> Decimal:
+    if isinstance(v, Decimal):
+        return v
+    if isinstance(v, (int, float)):
+        return Decimal(str(v))
+    if isinstance(v, str):
+        cleaned = v.replace(",", "").strip()
+        return Decimal(cleaned)
+    raise ValueError(f"unparseable amount: {v!r}")
+
+
+def _to_int(v: Any) -> int | None:
+    if v in (None, ""):
+        return None
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float):
+        return int(v)
+    if isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return None
+        try:
+            return int(s)
+        except ValueError:
+            return None
+    return None
+
+
+def parse_row(row: dict[str, Any]) -> "TransactionIn":
+    from app.parsers.simple_rules import classify
+    from app.transactions.schemas import TransactionIn
+
+    pan = row.get("카드번호") or ""
+    masked, last4 = mask_pan(str(pan))
+
+    raw_row = dict(row)
+    raw_row["카드번호"] = masked
+
+    approval_raw = row.get("승인번호")
+    approval_no: str | None = None
+    if approval_raw is not None:
+        s = str(approval_raw).strip()
+        approval_no = s if s else None
+
+    merchant = str(row.get("가맹점명") or "").strip()
+    is_canceled = str(row.get("취소여부") or "").strip().upper() == "Y"
+
+    return TransactionIn(
+        txn_date=_to_date(row.get("승인일자")),
+        txn_time=_to_time(row.get("승인시각")),
+        amount=_to_decimal(row.get("승인금액(원)")),
+        merchant_raw=merchant,
+        approval_no=approval_no,
+        card_last4=last4 or None,
+        installment_months=_to_int(row.get("할부개월")),
+        is_canceled=is_canceled,
+        category=classify(merchant),
+        raw_row=raw_row,
+    )
