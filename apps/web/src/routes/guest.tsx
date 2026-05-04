@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { TransactionList } from "../components/TransactionList";
 
 type Txn = {
   txn_date: string;
@@ -19,19 +20,7 @@ export function GuestPage() {
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <h2 className="text-2xl mb-4">Guest Demo · 김지출의 한 달</h2>
-      <ul className="space-y-2">
-        {txns.map((t, i) => (
-          <li key={i} className="border border-zinc-800 rounded p-3">
-            <div className="flex justify-between">
-              <span>{t.txn_date} · {t.merchant_raw}</span>
-              <span className="font-mono">{Number(t.amount).toLocaleString()}원</span>
-            </div>
-            <div className="text-xs text-zinc-500 mt-1">
-              [{t.category}] {t.essential === false ? "비필수" : "필수"} · {t.essential_reason}
-            </div>
-          </li>
-        ))}
-      </ul>
+      <TransactionList items={txns} />
     </div>
   );
 }

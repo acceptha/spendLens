@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../stores/auth";
 import { UploadDropzone } from "../components/UploadDropzone";
+import { TransactionList } from "../components/TransactionList";
 
 type Txn = {
   id: string;
@@ -55,22 +56,7 @@ export function AppPage() {
       <h2 className="text-2xl mb-4">My Transactions</h2>
       <UploadDropzone onFile={upload} />
       {msg && <p className="mb-4 text-sm text-zinc-400">{msg}</p>}
-      <ul className="space-y-2">
-        {txns.map((t) => (
-          <li key={t.id} className="border border-zinc-800 rounded p-3">
-            <div className="flex justify-between">
-              <span>
-                {t.txn_date} · {t.merchant_raw}
-                {t.is_canceled && <span className="ml-2 text-red-400 text-xs">[Canceled]</span>}
-              </span>
-              <span className="font-mono">{Number(t.amount).toLocaleString()}원</span>
-            </div>
-            <div className="text-xs text-zinc-500 mt-1">
-              [{t.category}] · {t.card_last4 ? `****-${t.card_last4}` : ""}
-            </div>
-          </li>
-        ))}
-      </ul>
+      <TransactionList items={txns} />
     </div>
   );
 }
