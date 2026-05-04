@@ -21,3 +21,41 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r --filter @spendlens/web build
       - run: pnpm -r --filter @spendlens/web test
+
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: spendlens_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5433/spendlens_test
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD_HASH: $argon2id$v=19$m=65536,t=3,p=4$placeholder
+      JWT_SECRET: ci_secret_64chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      WEB_ORIGIN: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.5.0"
+      - run: uv python install 3.12
+        working-directory: apps/api
+      - run: uv sync --frozen
+        working-directory: apps/api
+      - run: uv run alembic upgrade head
+        working-directory: apps/api
+      - run: uv run ruff check
+        working-directory: apps/api
+      - run: uv run pytest -v
+        working-directory: apps/api
