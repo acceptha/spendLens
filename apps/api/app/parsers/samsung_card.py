@@ -1,5 +1,7 @@
+import io
 import openpyxl
 import re
+from dataclasses import dataclass, field
 from datetime import date as _date, datetime, time
 from decimal import Decimal, InvalidOperation
 from typing import Any, Iterable
@@ -145,3 +147,51 @@ def parse_row(row: dict[str, Any]) -> "TransactionIn":
         category=classify(merchant),
         raw_row=raw_row,
     )
+
+
+@dataclass
+class ParseResult:
+    rows_total: int
+    transactions: list = field(default_factory=list)
+    parse_errors: list[dict[str, Any]] = field(default_factory=list)
+
+
+def parse_workbook(file_bytes: bytes) -> ParseResult:
+    from app.transactions.schemas import TransactionIn
+
+    try:
+        wb = openpyxl.load_workbook(
+            io.BytesIO(file_bytes), read_only=False, data_only=True
+        )
+    except Exception as e:
+        raise ParseError("WORKBOOK_LOAD_FAILED", reason=str(e))
+
+    sheet_name = find_target_sheet(wb)
+    ws = wb[sheet_name]
+    header_row, col_map = find_header_row(ws)
+
+    transactions: list[TransactionIn] = []
+    errors: list[dict[str, Any]] = []
+    data_rows = 0
+
+    max_row = ws.max_row or header_row
+    for row_idx in range(header_row + 1, max_row + 1):
+        row_dict: dict[str, Any] = {}
+        for col_name in ALL_KNOWN_COLUMNS:
+            col_idx = col_map.get(col_name)
+            row_dict[col_name] = ws.cell(row=row_idx, column=col_idx).value if col_idx else None
+
+        # 빈 행/합계 행 skip: 핵심 필드(승인일자 + 가맹점명) 둘 다 없으면 무시
+        if not row_dict.get("승인일자") and not row_dict.get("가맹점명"):
+            continue
+
+        data_rows += 1
+        try:
+            transactions.append(parse_row(row_dict))
+        except Exception as e:
+            errors.append({"row": row_idx, "error": str(e)})
+
+    if data_rows == 0:
+        raise ParseError("EMPTY_SHEET", sheet=sheet_name)
+
+    return ParseResult(rows_total=data_rows, transactions=transactions, parse_errors=errors)
