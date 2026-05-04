@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.routes import router as auth_router
 from app.seed.routes import router as seed_router
+from app.transactions.routes import router as transactions_router
 from app.auth.seed import ensure_admin_user
 from app.db import init_pool, close_pool, acquire
 from app.settings import settings
@@ -37,6 +38,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(seed_router)
+app.include_router(transactions_router)
 
 
 @app.get("/healthz")
