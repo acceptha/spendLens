@@ -1,15 +1,15 @@
-from contextlib import asynccontextmanager
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.routes import router as auth_router
-from app.seed.routes import router as seed_router
-from app.transactions.routes import router as transactions_router
 from app.auth.seed import ensure_admin_user
-from app.db import init_pool, close_pool, acquire
+from app.db import acquire, close_pool, init_pool
+from app.seed.routes import router as seed_router
 from app.settings import settings
+from app.transactions.routes import router as transactions_router
 
 logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger("spendlens")

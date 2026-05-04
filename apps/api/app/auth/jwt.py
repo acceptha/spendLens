@@ -1,11 +1,10 @@
-from datetime import datetime, timedelta, timezone
-from uuid import UUID, uuid4
+from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import UUID, uuid4
 
 import jwt as pyjwt
 
 from app.settings import settings
-
 
 _ALGORITHM = "HS256"
 
@@ -19,7 +18,7 @@ def _refresh_ttl() -> timedelta:
 
 
 def create_access_token(user_id: UUID) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": str(user_id),
         "type": "access",
@@ -31,7 +30,7 @@ def create_access_token(user_id: UUID) -> str:
 
 def create_refresh_token(user_id: UUID) -> tuple[str, UUID]:
     jti = uuid4()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": str(user_id),
         "jti": str(jti),

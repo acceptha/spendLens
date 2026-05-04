@@ -1,4 +1,5 @@
 import pytest
+
 from app.auth.seed import ensure_admin_user
 from app.settings import settings
 
@@ -17,5 +18,7 @@ async def test_seed_is_idempotent(test_db_pool):
     async with test_db_pool.acquire() as conn:
         await ensure_admin_user(conn)
         await ensure_admin_user(conn)
-        count = await conn.fetchval("SELECT COUNT(*) FROM users WHERE email = $1", settings.admin_email)
+        count = await conn.fetchval(
+            "SELECT COUNT(*) FROM users WHERE email = $1", settings.admin_email
+        )
     assert count == 1

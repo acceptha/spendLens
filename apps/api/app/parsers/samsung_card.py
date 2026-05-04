@@ -1,15 +1,18 @@
 import io
-import openpyxl
 import re
 from dataclasses import dataclass, field
-from datetime import date as _date, datetime, time
-from decimal import Decimal, InvalidOperation
-from typing import Any, Iterable
+from datetime import date as _date
+from datetime import datetime, time
+from decimal import Decimal
+from typing import TYPE_CHECKING, Any
 
+if TYPE_CHECKING:
+    from app.transactions.schemas import TransactionIn
+
+import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 
 from app.parsers import ParseError
-
 
 _TARGET_SHEET_KEYWORD = "국내이용내역"
 
@@ -26,7 +29,9 @@ def find_target_sheet(wb: openpyxl.Workbook) -> str:
     for name in wb.sheetnames:
         if _TARGET_SHEET_KEYWORD in name:
             return name
-    raise ParseError("SHEET_NOT_FOUND", looking_for=_TARGET_SHEET_KEYWORD, found=list(wb.sheetnames))
+    raise ParseError(
+        "SHEET_NOT_FOUND", looking_for=_TARGET_SHEET_KEYWORD, found=list(wb.sheetnames)
+    )
 
 
 def find_header_row(ws: Worksheet) -> tuple[int, dict[str, int]]:
@@ -164,7 +169,7 @@ def parse_workbook(file_bytes: bytes) -> ParseResult:
             io.BytesIO(file_bytes), read_only=False, data_only=True
         )
     except Exception as e:
-        raise ParseError("WORKBOOK_LOAD_FAILED", reason=str(e))
+        raise ParseError("WORKBOOK_LOAD_FAILED", reason=str(e)) from e
 
     sheet_name = find_target_sheet(wb)
     ws = wb[sheet_name]

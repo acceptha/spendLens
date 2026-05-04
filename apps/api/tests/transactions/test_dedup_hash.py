@@ -4,7 +4,6 @@ from uuid import UUID
 
 from app.transactions.service import compute_dedup_hash
 
-
 USER = UUID("00000000-0000-0000-0000-000000000001")
 
 

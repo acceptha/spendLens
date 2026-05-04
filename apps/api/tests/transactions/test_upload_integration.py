@@ -1,11 +1,11 @@
 from pathlib import Path
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.auth.password import hash_password
 from app.auth.seed import ensure_admin_user
 from app.settings import settings
-
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "samsung-card-fixture.xlsx"
 

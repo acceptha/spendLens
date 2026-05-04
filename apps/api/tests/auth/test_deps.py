@@ -1,6 +1,7 @@
-import pytest
 from uuid import UUID
-from fastapi import FastAPI, Depends
+
+import pytest
+from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from app.auth.deps import current_user_id
@@ -12,7 +13,7 @@ async def test_current_user_id_from_bearer():
     test_app = FastAPI()
 
     @test_app.get("/me")
-    async def me(uid: UUID = Depends(current_user_id)) -> dict:
+    async def me(uid: UUID = Depends(current_user_id)) -> dict:  # noqa: B008
         return {"user_id": str(uid)}
 
     user_id = UUID("00000000-0000-0000-0000-000000000001")
@@ -29,7 +30,7 @@ async def test_current_user_id_missing_header_401():
     test_app = FastAPI()
 
     @test_app.get("/me")
-    async def me(uid: UUID = Depends(current_user_id)) -> dict:
+    async def me(uid: UUID = Depends(current_user_id)) -> dict:  # noqa: B008
         return {}
 
     transport = ASGITransport(app=test_app)

@@ -1,9 +1,7 @@
 from datetime import date, time
 from decimal import Decimal
 
-import pytest
-
-from app.parsers.samsung_card import parse_row, ALL_KNOWN_COLUMNS
+from app.parsers.samsung_card import ALL_KNOWN_COLUMNS, parse_row
 
 
 def _make_row(values: dict[str, object]) -> dict[str, object]:

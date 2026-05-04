@@ -1,4 +1,4 @@
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import jwt as pyjwt
@@ -9,7 +9,6 @@ from app.auth.password import verify_password
 from app.auth.schemas import LoginRequest, LoginResponse, RefreshResponse
 from app.db import acquire
 from app.settings import settings
-
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -26,7 +25,7 @@ async def login(req: LoginRequest, response: Response) -> LoginResponse:
         user_id = row["id"]
         access = create_access_token(user_id)
         refresh, jti = create_refresh_token(user_id)
-        expires_at = datetime.now(timezone.utc) + timedelta(days=settings.jwt_refresh_ttl_days)
+        expires_at = datetime.now(UTC) + timedelta(days=settings.jwt_refresh_ttl_days)
 
         await conn.execute(
             "INSERT INTO refresh_tokens (jti, user_id, expires_at) VALUES ($1, $2, $3)",
@@ -46,16 +45,18 @@ async def login(req: LoginRequest, response: Response) -> LoginResponse:
 
 
 @router.post("/refresh", response_model=RefreshResponse)
-async def refresh(response: Response, refresh_token: str | None = Cookie(default=None)) -> RefreshResponse:
+async def refresh(
+    response: Response, refresh_token: str | None = Cookie(default=None)
+) -> RefreshResponse:
     if not refresh_token:
         raise HTTPException(status_code=401, detail="MISSING_REFRESH")
 
     try:
         payload = decode_token(refresh_token)
-    except pyjwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="TOKEN_EXPIRED")
-    except pyjwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="INVALID_TOKEN")
+    except pyjwt.ExpiredSignatureError as exc:
+        raise HTTPException(status_code=401, detail="TOKEN_EXPIRED") from exc
+    except pyjwt.InvalidTokenError as exc:
+        raise HTTPException(status_code=401, detail="INVALID_TOKEN") from exc
 
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="WRONG_TOKEN_TYPE")
@@ -76,7 +77,7 @@ async def refresh(response: Response, refresh_token: str | None = Cookie(default
 
         new_access = create_access_token(user_id)
         new_refresh, new_jti = create_refresh_token(user_id)
-        expires_at = datetime.now(timezone.utc) + timedelta(days=settings.jwt_refresh_ttl_days)
+        expires_at = datetime.now(UTC) + timedelta(days=settings.jwt_refresh_ttl_days)
 
         await conn.execute(
             "INSERT INTO refresh_tokens (jti, user_id, expires_at) VALUES ($1, $2, $3)",
@@ -103,7 +104,8 @@ async def logout(response: Response, refresh_token: str | None = Cookie(default=
             jti = UUID(payload["jti"])
             async with acquire() as conn:
                 await conn.execute(
-                    "UPDATE refresh_tokens SET revoked_at = now() WHERE jti = $1 AND revoked_at IS NULL",
+                    "UPDATE refresh_tokens"
+                    " SET revoked_at = now() WHERE jti = $1 AND revoked_at IS NULL",
                     jti,
                 )
         except (pyjwt.InvalidTokenError, KeyError, ValueError):

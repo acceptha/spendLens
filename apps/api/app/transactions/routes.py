@@ -4,10 +4,9 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.auth.deps import current_user_id
 from app.db import acquire
-from app.parsers import ParseError, get_parser, SOURCE_TYPE_SAMSUNG_XLSX
+from app.parsers import SOURCE_TYPE_SAMSUNG_XLSX, ParseError, get_parser
 from app.transactions.schemas import TransactionOut, UploadResponse
 from app.transactions.service import insert_transactions
-
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -19,11 +18,13 @@ _ALLOWED_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.she
 
 @router.post("/upload", response_model=UploadResponse)
 async def upload(
-    file: UploadFile = File(...),
-    user_id: UUID = Depends(current_user_id),
+    file: UploadFile = File(...),  # noqa: B008
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
 ) -> UploadResponse:
     if not file.filename or not file.filename.lower().endswith(_ALLOWED_EXT):
-        raise HTTPException(status_code=400, detail={"error": "INVALID_FILE_TYPE", "expected": _ALLOWED_EXT})
+        raise HTTPException(
+            status_code=400, detail={"error": "INVALID_FILE_TYPE", "expected": _ALLOWED_EXT}
+        )
     if file.content_type and file.content_type != _ALLOWED_MIME:
         # MIME 미스매치는 경고만 (브라우저별 다름) — 확장자 통과면 진행
         pass
@@ -37,13 +38,14 @@ async def upload(
     try:
         result = parser(file_bytes)
     except ParseError as e:
-        raise HTTPException(status_code=400, detail={"error": e.code, **e.details})
+        raise HTTPException(status_code=400, detail={"error": e.code, **e.details}) from e
 
     source_file_id = uuid4()
     async with acquire() as conn:
         await conn.execute(
             """
-            INSERT INTO source_files (id, user_id, source_type, filename, rows_total, rows_inserted, rows_skipped)
+            INSERT INTO source_files
+              (id, user_id, source_type, filename, rows_total, rows_inserted, rows_skipped)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             """,
             source_file_id, user_id, source_type, file.filename,
@@ -63,7 +65,7 @@ async def upload(
 
 
 @router.get("", response_model=list[TransactionOut], summary="사용자별 거래 목록")
-async def list_transactions(user_id: UUID = Depends(current_user_id)) -> list[TransactionOut]:
+async def list_transactions(user_id: UUID = Depends(current_user_id)) -> list[TransactionOut]:  # noqa: B008
     async with acquire() as conn:
         rows = await conn.fetch(
             """

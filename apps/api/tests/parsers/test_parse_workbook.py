@@ -1,9 +1,9 @@
 from pathlib import Path
+
 import pytest
 
 from app.parsers import ParseError
 from app.parsers.samsung_card import parse_workbook
-
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "samsung-card-fixture.xlsx"
 

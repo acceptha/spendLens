@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from uuid import uuid4
 
-import pytest
 import jwt as pyjwt
+import pytest
 
 from app.auth.jwt import create_access_token, create_refresh_token, decode_token
 

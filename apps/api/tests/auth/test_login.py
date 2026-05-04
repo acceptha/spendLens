@@ -26,7 +26,7 @@ async def test_login_success(seeded_user):
     assert resp.status_code == 200
     body = resp.json()
     assert "access_token" in body
-    assert body["token_type"] == "Bearer"
+    assert body["token_type"] == "Bearer"  # noqa: S105
     assert "refresh_token" in resp.cookies
 
 

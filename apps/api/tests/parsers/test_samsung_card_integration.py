@@ -1,7 +1,6 @@
 from pathlib import Path
 
-from app.parsers import get_parser, SOURCE_TYPE_SAMSUNG_XLSX
-
+from app.parsers import SOURCE_TYPE_SAMSUNG_XLSX, get_parser
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "samsung-card-fixture.xlsx"
 

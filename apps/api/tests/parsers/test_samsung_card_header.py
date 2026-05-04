@@ -1,10 +1,10 @@
 from pathlib import Path
+
 import openpyxl
 import pytest
 
 from app.parsers import ParseError
-from app.parsers.samsung_card import find_target_sheet, find_header_row, REQUIRED_COLUMNS
-
+from app.parsers.samsung_card import REQUIRED_COLUMNS, find_header_row, find_target_sheet
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "samsung-card-fixture.xlsx"
 

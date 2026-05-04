@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from fastapi import Header, HTTPException
 import jwt as pyjwt
+from fastapi import Header, HTTPException
 
 from app.auth.jwt import decode_token
 
@@ -12,10 +12,10 @@ async def current_user_id(authorization: str | None = Header(default=None)) -> U
     token = authorization[7:]
     try:
         payload = decode_token(token)
-    except pyjwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="TOKEN_EXPIRED")
-    except pyjwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="INVALID_TOKEN")
+    except pyjwt.ExpiredSignatureError as exc:
+        raise HTTPException(status_code=401, detail="TOKEN_EXPIRED") from exc
+    except pyjwt.InvalidTokenError as exc:
+        raise HTTPException(status_code=401, detail="INVALID_TOKEN") from exc
 
     if payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="WRONG_TOKEN_TYPE")

@@ -61,7 +61,8 @@ async def insert_transactions(
             user_id, source_file_id, source_type,
             t.txn_date, t.txn_time, t.amount, t.merchant_raw,
             t.approval_no, t.card_last4, t.installment_months,
-            t.is_canceled, t.category, dedup, json.dumps(t.raw_row, default=str, ensure_ascii=False),
+            t.is_canceled, t.category, dedup,
+            json.dumps(t.raw_row, default=str, ensure_ascii=False),
         )
         if result is not None:
             inserted += 1

@@ -1,9 +1,9 @@
-import asyncpg
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+
+import asyncpg
 
 from app.settings import settings
-
 
 _pool: asyncpg.Pool | None = None
 

@@ -4,6 +4,7 @@ Usage:
     cd apps/api && uv run python tests/fixtures/build_fixture.py
 """
 from pathlib import Path
+
 import openpyxl
 
 
