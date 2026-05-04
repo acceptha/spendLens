@@ -1,4 +1,5 @@
 import openpyxl
+import re
 from typing import Iterable
 
 from openpyxl.worksheet.worksheet import Worksheet
@@ -43,3 +44,13 @@ def find_header_row(ws: Worksheet) -> tuple[int, dict[str, int]]:
         required=REQUIRED_COLUMNS,
         scanned_rows=max_scan,
     )
+
+
+def mask_pan(pan: str | None) -> tuple[str, str]:
+    """Return (masked_string, last4)."""
+    if not pan:
+        return "****-****-****-****", ""
+    digits = re.sub(r"\D", "", pan)
+    last4 = digits[-4:] if len(digits) >= 4 else ""
+    masked = f"****-****-****-{last4}" if last4 else "****-****-****-****"
+    return masked, last4
