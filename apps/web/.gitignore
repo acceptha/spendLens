@@ -1,0 +1,5 @@
+# Compiled output from tsc -b (vite handles bundling, not tsc output)
+vite.config.js
+vite.config.d.ts
+src/**/*.js
+src/**/*.d.ts
