@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - /opt/spendlens/.env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: spendlens
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d spendlens"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - spendlens
+
+  api:
+    image: ghcr.io/${GHCR_USER}/spendlens-api:latest
+    restart: unless-stopped
+    env_file:
+      - /opt/spendlens/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - spendlens
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/spendlens/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    networks:
+      - spendlens
+
+networks:
+  spendlens:
+
+volumes:
+  caddy_data:
+  caddy_config:
+  caddy_logs:
+  postgres_data:
