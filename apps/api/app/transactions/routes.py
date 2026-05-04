@@ -41,16 +41,22 @@ async def upload(
 
     source_file_id = uuid4()
     async with acquire() as conn:
-        inserted, skipped = await insert_transactions(
-            conn, user_id, source_file_id, source_type, result.transactions
-        )
         await conn.execute(
             """
             INSERT INTO source_files (id, user_id, source_type, filename, rows_total, rows_inserted, rows_skipped)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             """,
             source_file_id, user_id, source_type, file.filename,
-            result.rows_total, inserted, skipped,
+            result.rows_total, 0, 0,
+        )
+        inserted, skipped = await insert_transactions(
+            conn, user_id, source_file_id, source_type, result.transactions
+        )
+        await conn.execute(
+            """
+            UPDATE source_files SET rows_inserted = $1, rows_skipped = $2 WHERE id = $3
+            """,
+            inserted, skipped, source_file_id,
         )
 
     return UploadResponse(uploaded=inserted, skipped=skipped, parse_errors=result.parse_errors)
