@@ -56,7 +56,7 @@ async def upload(
     return UploadResponse(uploaded=inserted, skipped=skipped, parse_errors=result.parse_errors)
 
 
-@router.get("", response_model=list[TransactionOut])
+@router.get("", response_model=list[TransactionOut], summary="사용자별 거래 목록")
 async def list_transactions(user_id: UUID = Depends(current_user_id)) -> list[TransactionOut]:
     async with acquire() as conn:
         rows = await conn.fetch(
