@@ -11,7 +11,7 @@ W1 in progress (skeleton + 삼성카드 XLSX 파서 + 첫 배포). Live demo wil
 - Frontend: React + Vite + TypeScript + Tailwind + Zustand
 - Backend: FastAPI + pandas + openpyxl + asyncpg + Alembic
 - AI: Claude Haiku (W2)
-- Deploy: Vercel + AWS Lightsail (Docker Compose + Caddy) + Supabase Postgres + GitHub Actions
+- Deploy: Vercel + AWS Lightsail (Docker Compose + Caddy + PostgreSQL) + GitHub Actions
 
 ## Repo Layout
 ```
