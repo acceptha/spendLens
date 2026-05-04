@@ -17,24 +17,31 @@ async def seeded_user(test_db_pool, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_login_success(seeded_user):
+async def test_refresh_rotates_jti(test_db_pool, seeded_user):
     from app.main import app
     email, pwd = seeded_user
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="https://test") as client:
-        resp = await client.post("/auth/login", json={"email": email, "password": pwd})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert "access_token" in body
-    assert body["token_type"] == "Bearer"
-    assert "refresh_token" in resp.cookies
+        login_resp = await client.post("/auth/login", json={"email": email, "password": pwd})
+        assert login_resp.status_code == 200
+        cookies1 = login_resp.cookies
+
+        refresh_resp = await client.post("/auth/refresh", cookies=cookies1)
+        assert refresh_resp.status_code == 200
+        assert "access_token" in refresh_resp.json()
+        assert "refresh_token" in refresh_resp.cookies
+
+    async with test_db_pool.acquire() as conn:
+        rows = await conn.fetch("SELECT jti, revoked_at FROM refresh_tokens ORDER BY expires_at")
+    assert len(rows) == 2
+    assert rows[0]["revoked_at"] is not None
+    assert rows[1]["revoked_at"] is None
 
 
 @pytest.mark.asyncio
-async def test_login_wrong_password(seeded_user):
+async def test_refresh_without_cookie_returns_401(seeded_user):
     from app.main import app
-    email, _ = seeded_user
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="https://test") as client:
-        resp = await client.post("/auth/login", json={"email": email, "password": "wrong"})
+        resp = await client.post("/auth/refresh")
     assert resp.status_code == 401
