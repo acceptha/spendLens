@@ -41,7 +41,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ubuntu
+          username: ec2-user
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           source: "infra/Caddyfile,infra/docker-compose.prod.yml"
           target: "/opt/spendlens/"
@@ -51,7 +51,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ubuntu
+          username: ec2-user
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           script: |
             cd /opt/spendlens
