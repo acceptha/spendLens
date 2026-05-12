@@ -71,7 +71,13 @@ def _to_date(v: Any) -> _date:
     if isinstance(v, datetime):
         return v.date()
     if isinstance(v, str):
-        return datetime.strptime(v, "%Y-%m-%d").date()
+        s = v.strip()
+        # 삼성카드 명세서: "YYYY.MM.DD". 픽스처/테스트: "YYYY-MM-DD". 슬래시도 방어.
+        for fmt in ("%Y-%m-%d", "%Y.%m.%d", "%Y/%m/%d"):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except ValueError:
+                continue
     raise ValueError(f"unparseable date: {v!r}")
 
 
@@ -138,7 +144,10 @@ def parse_row(row: dict[str, Any]) -> "TransactionIn":
         approval_no = s if s else None
 
     merchant = str(row.get("가맹점명") or "").strip()
-    is_canceled = str(row.get("취소여부") or "").strip().upper() == "Y"
+    # 취소여부: 실 삼성카드는 "취소취소"(취소) 또는 "-"(정상). 픽스처는 "Y"/"N".
+    # "정상 표시"가 아닌 모든 값을 취소로 간주.
+    _cancel_raw = str(row.get("취소여부") or "").strip().upper()
+    is_canceled = _cancel_raw not in ("", "-", "N")
 
     return TransactionIn(
         txn_date=_to_date(row.get("승인일자")),
