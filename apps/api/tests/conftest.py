@@ -53,3 +53,22 @@ async def reset_tables(test_db_pool):
             RESTART IDENTITY CASCADE;
         """)
     yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+async def _init_app_redis():
+    """Initialize redis pool for all tests."""
+    from app.redis_client import close_redis, init_redis
+    await init_redis()
+    yield
+    await close_redis()
+
+
+@pytest.fixture(autouse=True)
+async def reset_redis():
+    """각 테스트 전 test DB(index 15)를 비움."""
+    from app.redis_client import acquire_redis, init_redis
+    await init_redis()  # idempotent; re-initializes if a lifecycle test closed the pool
+    async with acquire_redis() as r:
+        await r.flushdb()
+    yield

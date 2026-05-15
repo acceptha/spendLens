@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth.routes import router as auth_router
 from app.auth.seed import ensure_admin_user
 from app.db import acquire, close_pool, init_pool
+from app.redis_client import close_redis, init_redis
 from app.seed.routes import router as seed_router
 from app.settings import settings
 from app.transactions.routes import router as transactions_router
@@ -18,10 +19,12 @@ logger = logging.getLogger("spendlens")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_pool()
+    await init_redis()
     async with acquire() as conn:
         await ensure_admin_user(conn)
-    logger.info("startup complete; admin seeded")
+    logger.info("startup complete; admin seeded; redis ready")
     yield
+    await close_redis()
     await close_pool()
     logger.info("shutdown complete")
 
