@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     jwt_access_ttl_minutes: int = 15
     jwt_refresh_ttl_days: int = 7
     web_origin: str = "http://localhost:5173"
+    redis_url: str = "redis://localhost:6379/0"
     log_level: str = "INFO"
 
 
