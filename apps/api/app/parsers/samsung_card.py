@@ -128,7 +128,6 @@ def _to_int(v: Any) -> int | None:
 
 
 def parse_row(row: dict[str, Any]) -> "TransactionIn":
-    from app.parsers.simple_rules import classify
     from app.transactions.schemas import TransactionIn
 
     pan = row.get("카드번호") or ""
@@ -158,7 +157,6 @@ def parse_row(row: dict[str, Any]) -> "TransactionIn":
         card_last4=last4 or None,
         installment_months=_to_int(row.get("할부개월")),
         is_canceled=is_canceled,
-        category=classify(merchant),
         raw_row=raw_row,
     )
 

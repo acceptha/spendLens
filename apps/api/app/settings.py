@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     jwt_refresh_ttl_days: int = 7
     web_origin: str = "http://localhost:5173"
     redis_url: str = "redis://localhost:6379/0"
+    anthropic_monthly_budget_usd: float = 5.0
     log_level: str = "INFO"
 
 

@@ -30,7 +30,7 @@ def test_parse_row_basic_lump_sum():
     assert txn.card_last4 == "3456"
     assert txn.installment_months == 0
     assert txn.is_canceled is False
-    assert txn.category == "coffee"
+    assert txn.category == "unknown"  # categorization happens in route layer, not parser
     # raw_row의 카드번호는 마스킹된 형태
     assert txn.raw_row["카드번호"] == "****-****-****-3456"
 

@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.auth.deps import current_user_id
+from app.categorization.service import classify as classify_category
 from app.db import acquire
 from app.parsers import SOURCE_TYPE_SAMSUNG_XLSX, ParseError, get_parser
 from app.transactions.schemas import TransactionOut, UploadResponse
@@ -39,6 +40,9 @@ async def upload(
         result = parser(file_bytes)
     except ParseError as e:
         raise HTTPException(status_code=400, detail={"error": e.code, **e.details}) from e
+
+    for tx in result.transactions:
+        tx.category = await classify_category(tx.merchant_raw)
 
     source_file_id = uuid4()
     async with acquire() as conn:
