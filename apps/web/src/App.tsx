@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LandingPage } from "./routes";
 import { GuestPage } from "./routes/guest";
 import { LoginPage } from "./routes/login";
+import { SignupPage } from "./routes/signup";
 import { AppPage } from "./routes/app";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -12,6 +13,7 @@ export function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/guest" element={<GuestPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/app" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>

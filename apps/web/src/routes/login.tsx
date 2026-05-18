@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../stores/auth";
 
@@ -32,6 +32,10 @@ export function LoginPage() {
                placeholder="비번" value={pwd} onChange={(e) => setPwd(e.target.value)} />
         {err && <p className="text-red-400 text-sm">{err}</p>}
         <button className="w-full p-2 bg-blue-600 rounded">로그인</button>
+        <p className="text-sm text-zinc-400 mt-2">
+          계정이 없으신가요?{" "}
+          <Link to="/signup" className="underline">회원가입</Link>
+        </p>
       </form>
     </div>
   );
