@@ -38,3 +38,21 @@ async def test_login_wrong_password(seeded_user):
     async with AsyncClient(transport=transport, base_url="https://test") as client:
         resp = await client.post("/auth/login", json={"email": email, "password": "wrong"})
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_login_rate_limit_after_5_attempts():
+    from app.main import app
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="https://test") as client:
+        for _ in range(5):
+            resp = await client.post(
+                "/auth/login",
+                json={"email": "nobody@example.com", "password": "wrong1234"},
+            )
+            assert resp.status_code == 401  # 5회까지는 인증 실패, rate limit 미발동
+        resp = await client.post(
+            "/auth/login",
+            json={"email": "nobody@example.com", "password": "wrong1234"},
+        )
+    assert resp.status_code == 429
