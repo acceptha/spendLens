@@ -49,7 +49,7 @@ async def reset_tables(test_db_pool):
     """각 테스트 전 모든 테이블을 비움. CASCADE로 의존성 해결."""
     async with test_db_pool.acquire() as conn:
         await conn.execute("""
-            TRUNCATE transactions, source_files, refresh_tokens, users
+            TRUNCATE llm_usage_log, transactions, source_files, refresh_tokens, users
             RESTART IDENTITY CASCADE;
         """)
     yield

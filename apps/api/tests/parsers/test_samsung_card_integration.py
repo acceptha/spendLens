@@ -14,11 +14,10 @@ def test_full_pipeline_via_registry():
     assert result.rows_total == 7
     assert len(result.transactions) == 7
 
-    # 카테고리 분포 검증
+    # 파서는 카테고리를 분류하지 않음 — 모두 기본값 "unknown"
+    # (카테고리 분류는 transactions/routes.py 에서 classify_category 호출)
     categories = [t.category for t in result.transactions]
-    assert "coffee" in categories  # 스타벅스, 이디야
-    assert "groceries" in categories  # 이마트
-    assert "lunch" in categories  # 김밥천국
+    assert all(c == "unknown" for c in categories)
 
     # 모든 카드번호 마스킹 확인
     for t in result.transactions:
