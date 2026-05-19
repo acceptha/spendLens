@@ -5,6 +5,7 @@ import openpyxl
 import pytest
 
 from app.parsers import (
+    SOURCE_TYPE_HANA_BANK_XLSX,
     SOURCE_TYPE_SAMSUNG_XLSX,
     SOURCE_TYPE_WOORI_XLSX,
     ParseError,
@@ -25,6 +26,13 @@ def test_detect_woori_xlsx():
     data = (FIXTURES / "woori-card-fixture.xlsx").read_bytes()
     source_type, parser = detect(data)
     assert source_type == SOURCE_TYPE_WOORI_XLSX
+    assert callable(parser)
+
+
+def test_detect_hana_bank_xlsx():
+    data = (FIXTURES / "hana-bank-fixture.xlsx").read_bytes()
+    source_type, parser = detect(data)
+    assert source_type == SOURCE_TYPE_HANA_BANK_XLSX
     assert callable(parser)
 
 
