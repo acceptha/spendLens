@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from app.auth.deps import current_user_id
 from app.categorization.service import classify as classify_category
 from app.db import acquire
-from app.parsers import SOURCE_TYPE_SAMSUNG_XLSX, ParseError, get_parser
+from app.parsers import ParseError, detect
 from app.transactions.schemas import TransactionOut, UploadResponse
 from app.transactions.service import insert_transactions
 
@@ -34,9 +34,8 @@ async def upload(
     if len(file_bytes) > _MAX_FILE_BYTES:
         raise HTTPException(status_code=400, detail={"error": "FILE_TOO_LARGE"})
 
-    source_type = SOURCE_TYPE_SAMSUNG_XLSX
-    parser = get_parser(source_type)
     try:
+        source_type, parser = detect(file_bytes)
         result = parser(file_bytes)
     except ParseError as e:
         raise HTTPException(status_code=400, detail={"error": e.code, **e.details}) from e
