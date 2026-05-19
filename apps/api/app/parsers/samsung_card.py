@@ -16,6 +16,12 @@ from app.parsers import ParseError
 
 _TARGET_SHEET_KEYWORD = "국내이용내역"
 
+
+def detect(wb: openpyxl.Workbook) -> bool:
+    """Return True if any sheet contains the Samsung Card target keyword."""
+    return any(_TARGET_SHEET_KEYWORD in name for name in wb.sheetnames)
+
+
 REQUIRED_COLUMNS = ["승인일자", "가맹점명", "승인금액(원)", "승인번호", "카드번호"]
 ALL_KNOWN_COLUMNS = [
     "카드번호", "본인가족구분", "승인일자", "승인시각", "가맹점명",
