@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     web_origin: str = "http://localhost:5173"
     redis_url: str = "redis://localhost:6379/0"
     anthropic_monthly_budget_usd: float = 5.0
+    anthropic_api_key: str = "sk-ant-test-placeholder"
     log_level: str = "INFO"
 
 
