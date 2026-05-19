@@ -16,13 +16,13 @@ class ParseError(Exception):
 
 SOURCE_TYPE_SAMSUNG_XLSX = "samsung_card_xlsx"
 SOURCE_TYPE_WOORI_XLSX = "woori_card_xlsx"
-SOURCE_TYPE_HANA_XLSX = "hana_card_xlsx"
+SOURCE_TYPE_HANA_BANK_XLSX = "hana_bank_xlsx"
 
 
 # Imports below MUST come after ParseError + SOURCE_TYPE_* so submodules can
 # `from app.parsers import ParseError` without cycle.
-from app.parsers.hana_card import detect as _detect_hana  # noqa: E402
-from app.parsers.hana_card import parse_workbook as _hana_parse  # noqa: E402
+from app.parsers.hana_bank import detect as _detect_hana_bank  # noqa: E402
+from app.parsers.hana_bank import parse_workbook as _hana_bank_parse  # noqa: E402
 from app.parsers.samsung_card import ParseResult  # noqa: E402
 from app.parsers.samsung_card import detect as _detect_samsung  # noqa: E402
 from app.parsers.samsung_card import parse_workbook as _samsung_parse  # noqa: E402
@@ -35,7 +35,7 @@ ParserFn = Callable[[bytes], ParseResult]
 _REGISTRY: list[tuple[str, Callable[[openpyxl.Workbook], bool], ParserFn]] = [
     (SOURCE_TYPE_SAMSUNG_XLSX, _detect_samsung, _samsung_parse),
     (SOURCE_TYPE_WOORI_XLSX, _detect_woori, _woori_parse),
-    (SOURCE_TYPE_HANA_XLSX, _detect_hana, _hana_parse),
+    (SOURCE_TYPE_HANA_BANK_XLSX, _detect_hana_bank, _hana_bank_parse),
 ]
 
 
