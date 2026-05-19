@@ -17,13 +17,31 @@ services:
     networks:
       - spendlens
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spendlens
+
   api:
     image: ghcr.io/${GHCR_USER}/spendlens-api:latest
     restart: unless-stopped
     env_file:
       - /opt/spendlens/.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - spendlens
@@ -50,3 +68,4 @@ volumes:
   caddy_config:
   caddy_logs:
   postgres_data:
+  redis_data:
