@@ -6,8 +6,12 @@ from app.auth.deps import current_user_id
 from app.categorization.service import classify as classify_category
 from app.db import acquire
 from app.parsers import ParseError, detect
-from app.transactions.schemas import TransactionOut, UploadResponse
-from app.transactions.service import insert_transactions
+from app.transactions.schemas import (
+    TransactionOut,
+    TransactionPatchRequest,
+    UploadResponse,
+)
+from app.transactions.service import insert_transactions, update_category
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -86,3 +90,15 @@ async def list_transactions(user_id: UUID = Depends(current_user_id)) -> list[Tr
             user_id,
         )
     return [TransactionOut(**dict(r)) for r in rows]
+
+
+@router.patch("/{transaction_id}", status_code=204)
+async def patch_transaction(
+    transaction_id: UUID,
+    req: TransactionPatchRequest,
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
+) -> None:
+    async with acquire() as conn:
+        updated = await update_category(conn, user_id, transaction_id, req.category)
+    if not updated:
+        raise HTTPException(status_code=404, detail="NOT_FOUND")
