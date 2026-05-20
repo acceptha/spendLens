@@ -56,3 +56,46 @@ api.interceptors.response.use(
     return Promise.reject(err);
   },
 );
+
+export type TransactionRow = {
+  id: string;
+  txn_date: string;
+  txn_time: string | null;
+  amount: string;
+  merchant_raw: string;
+  category: string;
+  auto_category: string;
+  user_category_override: string | null;
+  effective_category: string;
+  card_last4?: string | null;
+  is_canceled?: boolean;
+  essential?: boolean | null;
+  essential_reason?: string | null;
+};
+
+export async function fetchTransactions(params: {
+  month?: string;
+  category?: string[];
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<TransactionRow[]> {
+  const q = new URLSearchParams();
+  if (params.month) q.set("month", params.month);
+  if (params.category && params.category.length)
+    q.set("category", params.category.join(","));
+  if (params.search) q.set("search", params.search);
+  q.set("limit", String(params.limit ?? 50));
+  q.set("offset", String(params.offset ?? 0));
+  const { data } = await api.get<TransactionRow[]>(`/transactions?${q}`);
+  return data;
+}
+
+export async function fetchMonths(): Promise<string[]> {
+  const { data } = await api.get<string[]>("/transactions/months");
+  return data;
+}
+
+export async function patchCategory(id: string, category: string): Promise<void> {
+  await api.patch(`/transactions/${id}`, { category });
+}

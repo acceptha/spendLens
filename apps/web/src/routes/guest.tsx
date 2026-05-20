@@ -1,21 +1,11 @@
 import { useEffect, useState } from "react";
-import { api } from "../lib/api";
+import { api, type TransactionRow } from "../lib/api";
 import { TransactionList } from "../components/TransactionList";
 
-type Txn = {
-  txn_date: string;
-  txn_time: string | null;
-  amount: string;
-  merchant_raw: string;
-  category: string;
-  essential: boolean | null;
-  essential_reason: string | null;
-};
-
 export function GuestPage() {
-  const [txns, setTxns] = useState<Txn[]>([]);
+  const [txns, setTxns] = useState<TransactionRow[]>([]);
   useEffect(() => {
-    api.get<Txn[]>("/seed/transactions").then((r) => setTxns(r.data));
+    api.get<TransactionRow[]>("/seed/transactions").then((r) => setTxns(r.data));
   }, []);
   return (
     <div className="p-8 max-w-3xl mx-auto">
