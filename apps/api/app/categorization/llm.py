@@ -1,6 +1,6 @@
 """Claude Haiku 카테고리 분류 호출.
 
-응답을 14개 enum 안으로 강제. enum 밖이면 'unknown'으로 대체.
+응답을 CATEGORIES enum 안으로 강제. enum 밖이면 'unknown'으로 대체.
 JSON 응답 실패 시 LLMClassifyError raise — 호출자(service)가 'unknown'으로 폴백.
 """
 import json
@@ -24,8 +24,8 @@ class Usage:
 
 
 _SYSTEM = (
-    "당신은 한국 카드 거래의 가맹점명을 보고 카테고리를 정해주는 분류기입니다. "
-    "다음 14개 중 정확히 하나를 JSON으로 답하세요: "
+    "당신은 한국 카드 거래의 가맹점명 또는 통장 거래의 적요를 보고 카테고리를 정해주는 분류기입니다. "  # noqa: E501
+    f"다음 {len(CATEGORIES)}개 중 정확히 하나를 JSON으로 답하세요: "
     f"{', '.join(CATEGORIES)}. "
     '응답 형식: {"category": "<enum>"}. 다른 문자 없이 JSON만.'
 )
@@ -42,7 +42,7 @@ async def classify_one(merchant_raw: str) -> tuple[str, Usage]:
         model=HAIKU_MODEL_ID,
         max_tokens=64,
         system=_SYSTEM,
-        messages=[{"role": "user", "content": f"가맹점명: {merchant_raw}"}],
+        messages=[{"role": "user", "content": f"거래 내역: {merchant_raw}"}],
     )
 
     text = "".join(block.text for block in msg.content if hasattr(block, "text"))

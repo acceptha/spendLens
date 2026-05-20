@@ -21,6 +21,12 @@ from app.categorization.rulebook import CATEGORIES, match
         ("KT텔레콤", "telecom"),
         ("티머니 충전", "transport"),
         ("EMART 잠실점", "groceries"),  # 기존 test_simple_rules 케이스 흡수
+        # W3 통장 룰북 추가
+        ("[정기적금] 청년도약", "savings"),
+        ("[CMS] 하나생02022", "insurance"),
+        ("[타행이체] 수임월급", "income"),
+        ("[타행이체] 정혜숙", "transfer"),
+        ("[CMS] 월세-임대인", "housing"),
     ],
 )
 def test_rulebook_matches_known_merchants(merchant, expected):
@@ -35,6 +41,11 @@ def test_rulebook_returns_none_for_empty_string():
     assert match("") is None
 
 
-def test_categories_enum_has_unknown_and_14_total():
+def test_categories_enum_has_unknown_and_19_total():
     assert "unknown" in CATEGORIES
-    assert len(CATEGORIES) == 14
+    assert "savings" in CATEGORIES
+    assert "insurance" in CATEGORIES
+    assert "income" in CATEGORIES
+    assert "transfer" in CATEGORIES
+    assert "housing" in CATEGORIES
+    assert len(CATEGORIES) == 19

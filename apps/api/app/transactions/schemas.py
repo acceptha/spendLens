@@ -31,6 +31,10 @@ class TransactionOut(BaseModel):
     installment_months: int | None
     is_canceled: bool
     category: str
+    # W3 추가
+    auto_category: str
+    user_category_override: str | None
+    effective_category: str
     essential: bool | None
     essential_reason: str | None
 
@@ -39,3 +43,19 @@ class UploadResponse(BaseModel):
     uploaded: int
     skipped: int
     parse_errors: list[dict[str, Any]] = Field(default_factory=list)
+
+
+from typing import Literal  # noqa: E402
+
+# 19 categories — keep in sync with app.categorization.rulebook.CATEGORIES
+CategoryLiteral = Literal[
+    "coffee", "lunch", "dinner", "snack_late",
+    "groceries", "transport", "telecom",
+    "subscription", "entertainment", "health",
+    "shopping", "utilities", "etc", "unknown",
+    "savings", "insurance", "income", "transfer", "housing",
+]
+
+
+class TransactionPatchRequest(BaseModel):
+    category: CategoryLiteral
