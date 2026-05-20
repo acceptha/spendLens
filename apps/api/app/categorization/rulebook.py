@@ -10,6 +10,8 @@ CATEGORIES: tuple[str, ...] = (
     "groceries", "transport", "telecom",
     "subscription", "entertainment", "health",
     "shopping", "utilities", "etc", "unknown",
+    # W3 추가
+    "savings", "insurance", "income", "transfer", "housing",
 )
 
 _RULES: list[tuple[re.Pattern[str], str]] = [
@@ -25,6 +27,12 @@ _RULES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"한전|한국전력|도시가스|상수도|관리비", re.I), "utilities"),
     (re.compile(r"약국|병원|의원|치과|한의원", re.I), "health"),
     (re.compile(r"쿠팡|11번가|G마켓|네이버\s*스마트스토어|마켓컬리|SSG", re.I), "shopping"),
+    # W3 통장 룰 추가 (merchant_raw가 '[구분] 적요' 형태로 들어옴)
+    (re.compile(r"정기적금|적금|예금", re.I), "savings"),
+    (re.compile(r"월세|임대", re.I), "housing"),  # CMS보다 먼저 — [CMS] 월세-임대인 → housing
+    (re.compile(r"CMS|보험|손해보험|하나생|화재", re.I), "insurance"),
+    (re.compile(r"월급|급여|수익|수당", re.I), "income"),  # 이체보다 먼저 — [타행이체] 수임월급 → income  # noqa: E501
+    (re.compile(r"이체|송금|입금", re.I), "transfer"),
 ]
 
 

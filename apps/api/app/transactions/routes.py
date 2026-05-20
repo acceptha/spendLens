@@ -74,7 +74,11 @@ async def list_transactions(user_id: UUID = Depends(current_user_id)) -> list[Tr
             """
             SELECT id::text, txn_date, txn_time, amount, merchant_raw, merchant_normalized,
                    approval_no, card_last4, installment_months, is_canceled,
-                   category, essential, essential_reason
+                   category,
+                   category AS auto_category,
+                   user_category_override,
+                   COALESCE(user_category_override, category) AS effective_category,
+                   essential, essential_reason
             FROM transactions
             WHERE user_id = $1
             ORDER BY txn_date DESC, txn_time DESC NULLS LAST, created_at DESC
