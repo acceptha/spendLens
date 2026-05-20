@@ -1,3 +1,4 @@
+import re
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -19,6 +20,7 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 _MAX_FILE_BYTES = 10 * 1024 * 1024  # 10MB
 _ALLOWED_EXT = ".xlsx"
 _ALLOWED_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+_MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -71,8 +73,46 @@ async def upload(
     return UploadResponse(uploaded=inserted, skipped=skipped, parse_errors=result.parse_errors)
 
 
-@router.get("", response_model=list[TransactionOut], summary="사용자별 거래 목록")
-async def list_transactions(user_id: UUID = Depends(current_user_id)) -> list[TransactionOut]:  # noqa: B008
+@router.get("/months", response_model=list[str], summary="사용자별 거래가 있는 월 목록 (DESC)")
+async def list_months(
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
+) -> list[str]:
+    async with acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT DISTINCT to_char(txn_date, 'YYYY-MM') AS month
+            FROM transactions
+            WHERE user_id = $1
+            ORDER BY month DESC
+            """,
+            user_id,
+        )
+    return [r["month"] for r in rows]
+
+
+@router.get("", response_model=list[TransactionOut], summary="거래 목록 (필터/검색/페이지네이션)")
+async def list_transactions(
+    month: str | None = None,
+    category: str | None = None,
+    search: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
+) -> list[TransactionOut]:
+    if month is not None and not _MONTH_RE.match(month):
+        raise HTTPException(status_code=400, detail="INVALID_MONTH_FORMAT")
+    if not (1 <= limit <= 200):
+        raise HTTPException(status_code=400, detail="INVALID_LIMIT")
+    if offset < 0:
+        raise HTTPException(status_code=400, detail="INVALID_LIMIT")
+
+    categories_list = (
+        [c.strip() for c in category.split(",") if c.strip()] if category else None
+    )
+    # 모든 토큰이 빈 문자열(`category=,,,`)이면 []가 되어 ANY('{}')가 0 행을 반환
+    # → 의도(필터 없음)와 어긋나므로 None으로 치환
+    categories = categories_list if categories_list else None
+
     async with acquire() as conn:
         rows = await conn.fetch(
             """
@@ -85,9 +125,13 @@ async def list_transactions(user_id: UUID = Depends(current_user_id)) -> list[Tr
                    essential, essential_reason
             FROM transactions
             WHERE user_id = $1
+              AND ($2::text IS NULL OR to_char(txn_date, 'YYYY-MM') = $2)
+              AND ($3::text[] IS NULL OR COALESCE(user_category_override, category) = ANY($3))
+              AND ($4::text IS NULL OR merchant_raw ILIKE '%' || $4 || '%')
             ORDER BY txn_date DESC, txn_time DESC NULLS LAST, created_at DESC
+            LIMIT $5 OFFSET $6
             """,
-            user_id,
+            user_id, month, categories, search, limit, offset,
         )
     return [TransactionOut(**dict(r)) for r in rows]
 
