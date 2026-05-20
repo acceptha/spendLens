@@ -69,3 +69,26 @@ async def insert_transactions(
         else:
             skipped += 1
     return inserted, skipped
+
+
+async def update_category(
+    conn: asyncpg.Connection,
+    user_id: UUID,
+    transaction_id: UUID,
+    category: str,
+) -> bool:
+    """Set user_category_override for one transaction owned by user_id.
+
+    Returns True if updated, False if not found or owned by a different user.
+    Caller must validate `category` is in CATEGORIES (TransactionPatchRequest does this).
+    """
+    row = await conn.fetchrow(
+        """
+        UPDATE transactions
+        SET user_category_override = $3
+        WHERE id = $2 AND user_id = $1
+        RETURNING id
+        """,
+        user_id, transaction_id, category,
+    )
+    return row is not None
