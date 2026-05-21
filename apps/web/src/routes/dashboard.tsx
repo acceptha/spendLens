@@ -99,6 +99,12 @@ export function DashboardPage() {
               category="value"
               index="name"
               valueFormatter={(v) => `₩${v.toLocaleString()}`}
+              colors={[
+                "cyan", "amber", "rose", "lime", "violet",
+                "orange", "blue", "fuchsia", "emerald", "indigo",
+                "yellow", "pink", "teal", "sky", "purple",
+                "green", "red", "slate", "gray",
+              ]}
             />
           </Card>
 
@@ -109,6 +115,7 @@ export function DashboardPage() {
               index="month"
               categories={["amount"]}
               valueFormatter={(v) => `₩${v.toLocaleString()}`}
+              colors={["cyan"]}
             />
           </Card>
 
