@@ -99,3 +99,32 @@ export async function fetchMonths(): Promise<string[]> {
 export async function patchCategory(id: string, category: string): Promise<void> {
   await api.patch(`/transactions/${id}`, { category });
 }
+
+export type SummaryResponse = {
+  month: string;
+  total_amount: string;
+  transaction_count: number;
+  prev_month: string;
+  prev_month_total: string;
+  prev_month_diff_pct: number | null;
+};
+export type CategoryBucket = { category: string; amount: string; count: number };
+export type MonthBucket = { month: string; amount: string };
+export type MerchantBucket = { merchant_raw: string; amount: string; count: number };
+
+export async function fetchSummary(month: string): Promise<SummaryResponse> {
+  const { data } = await api.get<SummaryResponse>(`/dashboard/summary?month=${month}`);
+  return data;
+}
+export async function fetchByCategory(month: string): Promise<CategoryBucket[]> {
+  const { data } = await api.get<CategoryBucket[]>(`/dashboard/by-category?month=${month}`);
+  return data;
+}
+export async function fetchByMonth(lastN: number = 6): Promise<MonthBucket[]> {
+  const { data } = await api.get<MonthBucket[]>(`/dashboard/by-month?last_n=${lastN}`);
+  return data;
+}
+export async function fetchTopMerchants(month: string, limit: number = 5): Promise<MerchantBucket[]> {
+  const { data } = await api.get<MerchantBucket[]>(`/dashboard/top-merchants?month=${month}&limit=${limit}`);
+  return data;
+}
