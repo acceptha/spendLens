@@ -42,3 +42,15 @@ async def test_record_usage_writes_to_llm_usage_log(test_db_pool):
     assert rows[0]["input_tokens"] == 100
     assert rows[0]["output_tokens"] == 50
     assert rows[0]["purpose"] == "categorize"
+
+
+async def test_record_usage_logs_purpose(test_db_pool):
+    from app.categorization import budget
+    await budget.record_usage(
+        input_tokens=100, output_tokens=20, merchant="x", purpose="insight"
+    )
+    async with test_db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT purpose FROM llm_usage_log ORDER BY id DESC LIMIT 1"
+        )
+    assert row["purpose"] == "insight"
