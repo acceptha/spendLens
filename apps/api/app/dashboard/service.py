@@ -46,12 +46,29 @@ async def summary(conn: asyncpg.Connection, user_id: UUID, month: str) -> dict:
         """,
         user_id, prev,
     )
+    income_row = await conn.fetchrow(
+        """
+        SELECT COALESCE(SUM(-amount), 0)::numeric AS income
+        FROM transactions
+        WHERE user_id = $1 AND to_char(txn_date, 'YYYY-MM') = $2
+          AND amount < 0
+          AND COALESCE(user_category_override, category) <> 'transfer'
+        """,
+        user_id, month,
+    )
 
     cur_total = Decimal(row["total"])
     prev_total = Decimal(prev_row["total"])
+    income_total = Decimal(income_row["income"])
+    net_savings = income_total - cur_total
+
     diff_pct: float | None = None
     if prev_total > 0:
         diff_pct = float((cur_total - prev_total) / prev_total * 100)
+
+    savings_rate: float | None = None
+    if income_total > 0:
+        savings_rate = float(net_savings / income_total * 100)
 
     return {
         "month": month,
@@ -60,6 +77,9 @@ async def summary(conn: asyncpg.Connection, user_id: UUID, month: str) -> dict:
         "prev_month": prev,
         "prev_month_total": prev_total,
         "prev_month_diff_pct": diff_pct,
+        "income_total": income_total,
+        "net_savings": net_savings,
+        "savings_rate": savings_rate,
     }
 
 

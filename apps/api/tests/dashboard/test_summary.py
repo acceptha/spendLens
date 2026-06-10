@@ -94,3 +94,48 @@ async def test_summary_invalid_month_400(test_db_pool):
             headers={"Authorization": f"Bearer {token}"},
         )
         assert r.status_code == 400
+
+
+async def test_summary_income_and_savings_rate(test_db_pool):
+    """수입(amount<0, 이체 제외) + 순저축 + 저축률."""
+    async with await _client() as ac:
+        token, email = await _signup_and_token(ac)
+        async with test_db_pool.acquire() as conn:
+            user = await conn.fetchrow("SELECT id FROM users WHERE email=$1", email)
+            uid = user["id"]
+            # 지출 30000
+            await conn.execute(
+                "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, category, dedup_hash, raw_row) "
+                "VALUES ($1,'test','2026-05-01',30000,'M','etc',$2,'{}'::jsonb)",
+                uid, str(uuid4()))
+            # 수입(급여) 100000 — income
+            await conn.execute(
+                "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, category, dedup_hash, raw_row) "
+                "VALUES ($1,'test','2026-05-02',-100000,'급여','income',$2,'{}'::jsonb)",
+                uid, str(uuid4()))
+            # 이체 입금 -50000 — transfer (수입에서 제외돼야 함)
+            await conn.execute(
+                "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, category, dedup_hash, raw_row) "
+                "VALUES ($1,'test','2026-05-03',-50000,'이체','transfer',$2,'{}'::jsonb)",
+                uid, str(uuid4()))
+
+        r = await ac.get("/dashboard/summary?month=2026-05",
+                         headers={"Authorization": f"Bearer {token}"})
+        body = r.json()
+        assert float(body["total_amount"]) == 30000        # 지출
+        assert float(body["income_total"]) == 100000        # 이체 제외
+        assert float(body["net_savings"]) == 70000           # 100000 - 30000
+        assert round(body["savings_rate"], 1) == 70.0        # 70000/100000*100
+
+
+async def test_summary_zero_income_savings_rate_null(test_db_pool):
+    async with await _client() as ac:
+        token, email = await _signup_and_token(ac)
+        async with test_db_pool.acquire() as conn:
+            await _seed(conn, email, txn_date="2026-05-01", amount=10000)
+
+        r = await ac.get("/dashboard/summary?month=2026-05",
+                         headers={"Authorization": f"Bearer {token}"})
+        body = r.json()
+        assert float(body["income_total"]) == 0
+        assert body["savings_rate"] is None

@@ -18,6 +18,9 @@ class SummaryResponse(BaseModel):
     prev_month: str
     prev_month_total: Decimal
     prev_month_diff_pct: float | None
+    income_total: Decimal
+    net_savings: Decimal
+    savings_rate: float | None
 
 
 class CategoryBucket(BaseModel):
