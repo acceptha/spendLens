@@ -8,6 +8,7 @@ from app.auth.routes import router as auth_router
 from app.auth.seed import ensure_admin_user
 from app.dashboard.routes import router as dashboard_router
 from app.db import acquire, close_pool, init_pool
+from app.insights.routes import router as insights_router
 from app.redis_client import close_redis, init_redis
 from app.seed.routes import router as seed_router
 from app.settings import settings
@@ -44,6 +45,7 @@ app.include_router(auth_router)
 app.include_router(seed_router)
 app.include_router(transactions_router)
 app.include_router(dashboard_router)
+app.include_router(insights_router)
 
 
 @app.get("/healthz")
