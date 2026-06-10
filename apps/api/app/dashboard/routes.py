@@ -18,6 +18,9 @@ class SummaryResponse(BaseModel):
     prev_month: str
     prev_month_total: Decimal
     prev_month_diff_pct: float | None
+    income_total: Decimal
+    net_savings: Decimal
+    savings_rate: float | None
 
 
 class CategoryBucket(BaseModel):
@@ -26,13 +29,20 @@ class CategoryBucket(BaseModel):
     count: int
 
 
-class MonthBucket(BaseModel):
+class CashflowBucket(BaseModel):
     month: str
-    amount: Decimal
+    expense: Decimal
+    income: Decimal
 
 
 class MerchantBucket(BaseModel):
     merchant_raw: str
+    amount: Decimal
+    count: int
+
+
+class EssentialBucket(BaseModel):
+    essential: bool
     amount: Decimal
     count: int
 
@@ -63,17 +73,30 @@ async def get_by_category(
     return [CategoryBucket(**r) for r in rows]
 
 
-@router.get("/by-month", response_model=list[MonthBucket])
-async def get_by_month(
+@router.get("/cashflow-by-month", response_model=list[CashflowBucket])
+async def get_cashflow_by_month(
     last_n: int = 6,
     user_id: UUID = Depends(current_user_id),  # noqa: B008
-) -> list[MonthBucket]:
+) -> list[CashflowBucket]:
     try:
         async with acquire() as conn:
-            rows = await service.by_month(conn, user_id, last_n)
+            rows = await service.cashflow_by_month(conn, user_id, last_n)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="INVALID_LAST_N") from exc
-    return [MonthBucket(**r) for r in rows]
+    return [CashflowBucket(**r) for r in rows]
+
+
+@router.get("/by-essential", response_model=list[EssentialBucket])
+async def get_by_essential(
+    month: str,
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
+) -> list[EssentialBucket]:
+    try:
+        async with acquire() as conn:
+            rows = await service.by_essential(conn, user_id, month)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="INVALID_MONTH_FORMAT") from exc
+    return [EssentialBucket(**r) for r in rows]
 
 
 @router.get("/top-merchants", response_model=list[MerchantBucket])

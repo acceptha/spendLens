@@ -4,15 +4,17 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.auth.deps import current_user_id
+from app.categorization.essential import ESSENTIAL_CATEGORIES
 from app.categorization.service import classify as classify_category
 from app.db import acquire
 from app.parsers import ParseError, detect
 from app.transactions.schemas import (
+    EssentialPatchRequest,
     TransactionOut,
     TransactionPatchRequest,
     UploadResponse,
 )
-from app.transactions.service import insert_transactions, update_category
+from app.transactions.service import insert_transactions, update_category, update_essential
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -122,7 +124,10 @@ async def list_transactions(
                    category AS auto_category,
                    user_category_override,
                    COALESCE(user_category_override, category) AS effective_category,
-                   essential, essential_reason
+                   essential_override,
+                   CASE WHEN essential_override IS NOT NULL THEN essential_override
+                        ELSE (COALESCE(user_category_override, category) = ANY($7::text[]))
+                   END AS effective_essential
             FROM transactions
             WHERE user_id = $1
               AND ($2::text IS NULL OR to_char(txn_date, 'YYYY-MM') = $2)
@@ -132,6 +137,7 @@ async def list_transactions(
             LIMIT $5 OFFSET $6
             """,
             user_id, month, categories, search, limit, offset,
+            list(ESSENTIAL_CATEGORIES),
         )
     return [TransactionOut(**dict(r)) for r in rows]
 
@@ -144,5 +150,19 @@ async def patch_transaction(
 ) -> None:
     async with acquire() as conn:
         updated = await update_category(conn, user_id, transaction_id, req.category)
+    if not updated:
+        raise HTTPException(status_code=404, detail="NOT_FOUND")
+
+
+@router.patch("/{transaction_id}/essential", status_code=204)
+async def patch_transaction_essential(
+    transaction_id: UUID,
+    req: EssentialPatchRequest,
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
+) -> None:
+    async with acquire() as conn:
+        updated = await update_essential(
+            conn, user_id, transaction_id, req.essential_override
+        )
     if not updated:
         raise HTTPException(status_code=404, detail="NOT_FOUND")

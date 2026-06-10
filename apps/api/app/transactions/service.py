@@ -92,3 +92,26 @@ async def update_category(
         user_id, transaction_id, category,
     )
     return row is not None
+
+
+async def update_essential(
+    conn: asyncpg.Connection,
+    user_id: UUID,
+    transaction_id: UUID,
+    essential_override: bool | None,
+) -> bool:
+    """Set essential_override (true/false/null) for one transaction owned by user_id.
+
+    null clears the override → effective_essential falls back to the category default.
+    Returns True if updated, False if not found / owned by another user.
+    """
+    row = await conn.fetchrow(
+        """
+        UPDATE transactions
+        SET essential_override = $3
+        WHERE id = $2 AND user_id = $1
+        RETURNING id
+        """,
+        user_id, transaction_id, essential_override,
+    )
+    return row is not None

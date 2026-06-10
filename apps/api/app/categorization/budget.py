@@ -42,6 +42,7 @@ async def record_usage(
     output_tokens: int,
     merchant: str,
     model: str = HAIKU_MODEL_ID,
+    purpose: str = "categorize",
 ) -> None:
     cost = _cost(input_tokens, output_tokens)
     async with acquire_redis() as r:
@@ -52,7 +53,7 @@ async def record_usage(
             """
             INSERT INTO llm_usage_log
               (model, input_tokens, output_tokens, cost_usd, purpose, merchant_normalized)
-            VALUES ($1, $2, $3, $4, 'categorize', $5)
+            VALUES ($1, $2, $3, $4, $5, $6)
             """,
-            model, input_tokens, output_tokens, cost, merchant,
+            model, input_tokens, output_tokens, cost, purpose, merchant,
         )

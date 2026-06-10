@@ -1,5 +1,6 @@
 import type { TransactionRow } from "../lib/api";
 import { CategoryChip } from "./CategoryChip";
+import { EssentialToggle } from "./EssentialToggle";
 
 // W3: TransactionRow는 lib/api.ts의 단일 타입 — 여기선 re-export로 backward-compat
 export type Txn = TransactionRow;
@@ -7,9 +8,10 @@ export type Txn = TransactionRow;
 type Props = {
   items: TransactionRow[];
   onCategoryChange?: (id: string, newCategory: string) => void;
+  onEssentialChange?: (id: string, override: boolean | null) => void;
 };
 
-export function TransactionList({ items, onCategoryChange }: Props) {
+export function TransactionList({ items, onCategoryChange, onEssentialChange }: Props) {
   return (
     <ul className="space-y-2" data-testid="txn-list">
       {items.map((t) => (
@@ -33,7 +35,14 @@ export function TransactionList({ items, onCategoryChange }: Props) {
               <span>[{t.effective_category ?? t.category}]</span>
             )}
             {t.card_last4 && <span>· ****-{t.card_last4}</span>}
-            {t.essential_reason && <span>· {t.essential_reason}</span>}
+            {onEssentialChange && (
+              <EssentialToggle
+                transactionId={t.id}
+                override={t.essential_override ?? null}
+                effective={t.effective_essential ?? false}
+                onChange={(ov) => onEssentialChange(t.id, ov)}
+              />
+            )}
           </div>
         </li>
       ))}

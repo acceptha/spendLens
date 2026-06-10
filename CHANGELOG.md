@@ -1,5 +1,24 @@
 # Changelog
 
+## W4 — 2026-06-10 (분석 고도화)
+
+### Added
+- `POST /insights/generate` (body `{month}`, `?force`) + `GET /insights?month=` — Claude Haiku 월간 인사이트(구조화 하이라이트 top_growth/anomaly/saving_tip), 온디맨드 + `monthly_insights` DB 캐시. 예산초과 503 BUDGET_EXCEEDED, LLM 실패 502 INSIGHT_GENERATION_FAILED.
+- `app/insights/` 모듈 (llm + service + routes + schemas)
+- `GET /dashboard/cashflow-by-month?last_n=` — 월별 지출+수입 결합 추세
+- `GET /dashboard/by-essential?month=` — 필수/비필수 합계
+- `PATCH /transactions/{id}/essential` — 3-state 토글 (필수/비필수/자동)
+- `app/categorization/essential.py` — 카테고리 → 필수 기본 매핑(파생 계산)
+- Frontend `components/{InsightCard,MetricStrip,CashflowChart,EssentialDonut,EssentialToggle}.tsx` + B+ 대시보드 레이아웃
+
+### Changed
+- `GET /dashboard/summary` — `income_total` / `net_savings` / `savings_rate` 추가 (수입은 이체 제외)
+- `GET /transactions` 응답 — `essential`/`essential_reason` 제거 → `essential_override` / `effective_essential`
+- 마이그레이션 0004 — `transactions.essential_override` 컬럼 + `monthly_insights` 테이블
+
+### Removed
+- `GET /dashboard/by-month` — `cashflow-by-month`로 대체
+
 ## W3 — 2026-05-21
 
 ### Added
