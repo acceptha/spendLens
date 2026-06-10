@@ -29,9 +29,10 @@ class CategoryBucket(BaseModel):
     count: int
 
 
-class MonthBucket(BaseModel):
+class CashflowBucket(BaseModel):
     month: str
-    amount: Decimal
+    expense: Decimal
+    income: Decimal
 
 
 class MerchantBucket(BaseModel):
@@ -66,17 +67,17 @@ async def get_by_category(
     return [CategoryBucket(**r) for r in rows]
 
 
-@router.get("/by-month", response_model=list[MonthBucket])
-async def get_by_month(
+@router.get("/cashflow-by-month", response_model=list[CashflowBucket])
+async def get_cashflow_by_month(
     last_n: int = 6,
     user_id: UUID = Depends(current_user_id),  # noqa: B008
-) -> list[MonthBucket]:
+) -> list[CashflowBucket]:
     try:
         async with acquire() as conn:
-            rows = await service.by_month(conn, user_id, last_n)
+            rows = await service.cashflow_by_month(conn, user_id, last_n)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="INVALID_LAST_N") from exc
-    return [MonthBucket(**r) for r in rows]
+    return [CashflowBucket(**r) for r in rows]
 
 
 @router.get("/top-merchants", response_model=list[MerchantBucket])

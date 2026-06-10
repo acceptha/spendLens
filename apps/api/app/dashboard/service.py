@@ -100,23 +100,25 @@ async def by_category(conn: asyncpg.Connection, user_id: UUID, month: str) -> li
     return [{"category": r["category"], "amount": r["amount"], "count": r["count"]} for r in rows]
 
 
-async def by_month(conn: asyncpg.Connection, user_id: UUID, last_n: int) -> list[dict]:
+async def cashflow_by_month(conn: asyncpg.Connection, user_id: UUID, last_n: int) -> list[dict]:
     if not (1 <= last_n <= 24):
         raise ValueError(f"last_n out of range: {last_n}")
     rows = await conn.fetch(
         """
         SELECT to_char(txn_date, 'YYYY-MM') AS month,
-               COALESCE(SUM(amount), 0)::numeric AS amount
+               COALESCE(SUM(amount) FILTER (WHERE amount > 0), 0)::numeric AS expense,
+               COALESCE(SUM(-amount) FILTER (
+                   WHERE amount < 0 AND COALESCE(user_category_override, category) <> 'transfer'
+               ), 0)::numeric AS income
         FROM transactions
         WHERE user_id = $1
           AND txn_date >= date_trunc('month', CURRENT_DATE - ($2 - 1) * INTERVAL '1 month')
-          AND amount > 0
         GROUP BY to_char(txn_date, 'YYYY-MM')
         ORDER BY to_char(txn_date, 'YYYY-MM') ASC
         """,
         user_id, last_n,
     )
-    return [{"month": r["month"], "amount": r["amount"]} for r in rows]
+    return [{"month": r["month"], "expense": r["expense"], "income": r["income"]} for r in rows]
 
 
 async def top_merchants(
