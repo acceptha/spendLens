@@ -21,7 +21,8 @@ export function InsightCard({ month }: { month: string }) {
     setLoading(true);
     setError(null);
     try {
-      setInsight(await generateInsight(month));
+      // 이미 인사이트가 있으면 "다시 생성" → force=true로 캐시 무시하고 재생성
+      setInsight(await generateInsight(month, insight != null));
     } catch (e: any) {
       setError(
         e?.response?.status === 503
