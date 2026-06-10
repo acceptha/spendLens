@@ -35,8 +35,9 @@ class TransactionOut(BaseModel):
     auto_category: str
     user_category_override: str | None
     effective_category: str
-    essential: bool | None
-    essential_reason: str | None
+    # W4 — 필수/비필수 (파생)
+    essential_override: bool | None
+    effective_essential: bool
 
 
 class UploadResponse(BaseModel):

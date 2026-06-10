@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.auth.deps import current_user_id
+from app.categorization.essential import ESSENTIAL_CATEGORIES
 from app.categorization.service import classify as classify_category
 from app.db import acquire
 from app.parsers import ParseError, detect
@@ -122,7 +123,10 @@ async def list_transactions(
                    category AS auto_category,
                    user_category_override,
                    COALESCE(user_category_override, category) AS effective_category,
-                   essential, essential_reason
+                   essential_override,
+                   CASE WHEN essential_override IS NOT NULL THEN essential_override
+                        ELSE (COALESCE(user_category_override, category) = ANY($7::text[]))
+                   END AS effective_essential
             FROM transactions
             WHERE user_id = $1
               AND ($2::text IS NULL OR to_char(txn_date, 'YYYY-MM') = $2)
@@ -132,6 +136,7 @@ async def list_transactions(
             LIMIT $5 OFFSET $6
             """,
             user_id, month, categories, search, limit, offset,
+            list(ESSENTIAL_CATEGORIES),
         )
     return [TransactionOut(**dict(r)) for r in rows]
 
