@@ -9,11 +9,12 @@ from app.categorization.service import classify as classify_category
 from app.db import acquire
 from app.parsers import ParseError, detect
 from app.transactions.schemas import (
+    EssentialPatchRequest,
     TransactionOut,
     TransactionPatchRequest,
     UploadResponse,
 )
-from app.transactions.service import insert_transactions, update_category
+from app.transactions.service import insert_transactions, update_category, update_essential
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -149,5 +150,19 @@ async def patch_transaction(
 ) -> None:
     async with acquire() as conn:
         updated = await update_category(conn, user_id, transaction_id, req.category)
+    if not updated:
+        raise HTTPException(status_code=404, detail="NOT_FOUND")
+
+
+@router.patch("/{transaction_id}/essential", status_code=204)
+async def patch_transaction_essential(
+    transaction_id: UUID,
+    req: EssentialPatchRequest,
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
+) -> None:
+    async with acquire() as conn:
+        updated = await update_essential(
+            conn, user_id, transaction_id, req.essential_override
+        )
     if not updated:
         raise HTTPException(status_code=404, detail="NOT_FOUND")

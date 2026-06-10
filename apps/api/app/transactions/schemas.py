@@ -60,3 +60,7 @@ CategoryLiteral = Literal[
 
 class TransactionPatchRequest(BaseModel):
     category: CategoryLiteral
+
+
+class EssentialPatchRequest(BaseModel):
+    essential_override: bool | None
