@@ -75,6 +75,12 @@ export function AppPage() {
     );
   }
 
+  function onEssentialChange(id: string, override: boolean | null) {
+    setTxns((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, essential_override: override } : t)),
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <div className="max-w-3xl mx-auto p-8">
@@ -94,7 +100,7 @@ export function AppPage() {
         {loading ? (
           <p className="text-zinc-400 text-sm">로딩…</p>
         ) : (
-          <TransactionList items={txns} onCategoryChange={onCategoryChange} />
+          <TransactionList items={txns} onCategoryChange={onCategoryChange} onEssentialChange={onEssentialChange} />
         )}
       </div>
     </div>
