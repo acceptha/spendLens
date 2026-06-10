@@ -41,6 +41,12 @@ class MerchantBucket(BaseModel):
     count: int
 
 
+class EssentialBucket(BaseModel):
+    essential: bool
+    amount: Decimal
+    count: int
+
+
 @router.get("/summary", response_model=SummaryResponse)
 async def get_summary(
     month: str,
@@ -78,6 +84,19 @@ async def get_cashflow_by_month(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="INVALID_LAST_N") from exc
     return [CashflowBucket(**r) for r in rows]
+
+
+@router.get("/by-essential", response_model=list[EssentialBucket])
+async def get_by_essential(
+    month: str,
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
+) -> list[EssentialBucket]:
+    try:
+        async with acquire() as conn:
+            rows = await service.by_essential(conn, user_id, month)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="INVALID_MONTH_FORMAT") from exc
+    return [EssentialBucket(**r) for r in rows]
 
 
 @router.get("/top-merchants", response_model=list[MerchantBucket])

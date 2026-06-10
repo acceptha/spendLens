@@ -9,6 +9,8 @@ from uuid import UUID
 
 import asyncpg
 
+from app.categorization.essential import ESSENTIAL_CATEGORIES
+
 _MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 
 
@@ -98,6 +100,29 @@ async def by_category(conn: asyncpg.Connection, user_id: UUID, month: str) -> li
         user_id, month,
     )
     return [{"category": r["category"], "amount": r["amount"], "count": r["count"]} for r in rows]
+
+
+async def by_essential(conn: asyncpg.Connection, user_id: UUID, month: str) -> list[dict]:
+    validate_month(month)
+    rows = await conn.fetch(
+        """
+        SELECT (CASE WHEN essential_override IS NOT NULL THEN essential_override
+                     ELSE (COALESCE(user_category_override, category) = ANY($3::text[]))
+                END) AS essential,
+               COALESCE(SUM(amount), 0)::numeric AS amount,
+               COUNT(*) AS count
+        FROM transactions
+        WHERE user_id = $1 AND to_char(txn_date, 'YYYY-MM') = $2 AND amount > 0
+        GROUP BY (CASE WHEN essential_override IS NOT NULL THEN essential_override
+                       ELSE (COALESCE(user_category_override, category) = ANY($3::text[]))
+                  END)
+        ORDER BY (CASE WHEN essential_override IS NOT NULL THEN essential_override
+                       ELSE (COALESCE(user_category_override, category) = ANY($3::text[]))
+                  END) DESC
+        """,
+        user_id, month, list(ESSENTIAL_CATEGORIES),
+    )
+    return [{"essential": r["essential"], "amount": r["amount"], "count": r["count"]} for r in rows]
 
 
 async def cashflow_by_month(conn: asyncpg.Connection, user_id: UUID, last_n: int) -> list[dict]:
