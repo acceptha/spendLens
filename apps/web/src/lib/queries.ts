@@ -16,6 +16,7 @@ import {
   fetchInsight,
   patchCategory,
   patchEssential,
+  api,
   type TransactionRow,
 } from "./api";
 
@@ -184,6 +185,27 @@ export function useEssentialOverride() {
         qc.invalidateQueries({ queryKey: ["transactions"] });
         qc.invalidateQueries({ queryKey: ["dashboard"] });
       }
+    },
+  });
+}
+
+export type UploadResult = { uploaded: number; skipped: number };
+
+export function useUploadStatement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File): Promise<UploadResult> => {
+      const fd = new FormData();
+      fd.append("file", file);
+      const { data } = await api.post<UploadResult>("/transactions/upload", fd);
+      return data;
+    },
+    onSuccess: () => {
+      // 업로드는 어느 월/카테고리에 떨어질지 모르므로 관련 캐시 전체 무효화.
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["months"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["insight"] });
     },
   });
 }
