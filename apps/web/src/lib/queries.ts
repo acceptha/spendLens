@@ -1,6 +1,9 @@
 import {
   useQuery,
+  useMutation,
+  useQueryClient,
   keepPreviousData,
+  type QueryKey,
 } from "@tanstack/react-query";
 import {
   fetchTransactions,
@@ -11,6 +14,8 @@ import {
   fetchByEssential,
   fetchTopMerchants,
   fetchInsight,
+  patchCategory,
+  type TransactionRow,
 } from "./api";
 
 export type TxnFilters = {
@@ -97,5 +102,62 @@ export function useInsight(month: string | undefined) {
     queryKey: qk.insight(month ?? ""),
     queryFn: () => fetchInsight(month!),
     enabled: !!month,
+  });
+}
+
+// --- mutation 훅 ---
+
+const CATEGORY_MUTATION_KEY = ["override-category"] as const;
+
+type TxnSnapshot = [QueryKey, TransactionRow[] | undefined][];
+
+/** transactions 캐시의 모든 엔트리에서 한 row를 patch. 스냅샷을 반환. */
+export function patchTxnCaches(
+  qc: ReturnType<typeof useQueryClient>,
+  id: string,
+  patch: Partial<TransactionRow>,
+): TxnSnapshot {
+  const snapshots = qc.getQueriesData<TransactionRow[]>({ queryKey: ["transactions"] });
+  for (const [key, rows] of snapshots) {
+    if (!rows) continue;
+    qc.setQueryData<TransactionRow[]>(
+      key,
+      rows.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+    );
+  }
+  return snapshots;
+}
+
+export function rollbackTxnCaches(
+  qc: ReturnType<typeof useQueryClient>,
+  snapshots: TxnSnapshot | undefined,
+): void {
+  snapshots?.forEach(([key, rows]) => qc.setQueryData(key, rows));
+}
+
+export function useCategoryOverride() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: CATEGORY_MUTATION_KEY,
+    mutationFn: ({ id, category }: { id: string; category: string }) =>
+      patchCategory(id, category),
+    onMutate: async ({ id, category }) => {
+      await qc.cancelQueries({ queryKey: ["transactions"] });
+      const snapshots = patchTxnCaches(qc, id, {
+        user_category_override: category,
+        effective_category: category,
+      });
+      return { snapshots };
+    },
+    onError: (_err, _vars, context) => {
+      rollbackTxnCaches(qc, context?.snapshots);
+    },
+    onSettled: () => {
+      // 경합 가드: 마지막으로 settle되는 mutation만 무효화 (진행 중 낙관적 상태 보존)
+      if (qc.isMutating({ mutationKey: CATEGORY_MUTATION_KEY }) === 1) {
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+        qc.invalidateQueries({ queryKey: ["dashboard"] });
+      }
+    },
   });
 }
