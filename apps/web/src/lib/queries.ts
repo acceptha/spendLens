@@ -15,6 +15,7 @@ import {
   fetchTopMerchants,
   fetchInsight,
   patchCategory,
+  patchEssential,
   type TransactionRow,
 } from "./api";
 
@@ -155,6 +156,31 @@ export function useCategoryOverride() {
     onSettled: () => {
       // 경합 가드: 마지막으로 settle되는 mutation만 무효화 (진행 중 낙관적 상태 보존)
       if (qc.isMutating({ mutationKey: CATEGORY_MUTATION_KEY }) === 1) {
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+        qc.invalidateQueries({ queryKey: ["dashboard"] });
+      }
+    },
+  });
+}
+
+const ESSENTIAL_MUTATION_KEY = ["override-essential"] as const;
+
+export function useEssentialOverride() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: ESSENTIAL_MUTATION_KEY,
+    mutationFn: ({ id, essentialOverride }: { id: string; essentialOverride: boolean | null }) =>
+      patchEssential(id, essentialOverride),
+    onMutate: async ({ id, essentialOverride }) => {
+      await qc.cancelQueries({ queryKey: ["transactions"] });
+      const snapshots = patchTxnCaches(qc, id, { essential_override: essentialOverride });
+      return { snapshots };
+    },
+    onError: (_err, _vars, context) => {
+      rollbackTxnCaches(qc, context?.snapshots);
+    },
+    onSettled: () => {
+      if (qc.isMutating({ mutationKey: ESSENTIAL_MUTATION_KEY }) === 1) {
         qc.invalidateQueries({ queryKey: ["transactions"] });
         qc.invalidateQueries({ queryKey: ["dashboard"] });
       }
