@@ -1,49 +1,27 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, DonutChart, Title } from "@tremor/react";
-import {
-  fetchMonths, fetchSummary, fetchByCategory, fetchCashflowByMonth,
-  fetchTopMerchants, fetchByEssential,
-  type SummaryResponse, type CategoryBucket, type CashflowBucket,
-  type MerchantBucket, type EssentialBucket,
-} from "../lib/api";
 import { InsightCard } from "../components/InsightCard";
 import { MetricStrip } from "../components/MetricStrip";
 import { CashflowChart } from "../components/CashflowChart";
 import { EssentialDonut } from "../components/EssentialDonut";
+import {
+  useMonths, useSummary, useByCategory, useCashflow, useTopMerchants, useByEssential,
+} from "../lib/queries";
 
 export function DashboardPage() {
-  const [months, setMonths] = useState<string[]>([]);
-  const [month, setMonth] = useState<string>("");
-  const [summary, setSummary] = useState<SummaryResponse | null>(null);
-  const [byCategory, setByCategory] = useState<CategoryBucket[]>([]);
-  const [cashflow, setCashflow] = useState<CashflowBucket[]>([]);
-  const [topMerchants, setTopMerchants] = useState<MerchantBucket[]>([]);
-  const [byEssential, setByEssential] = useState<EssentialBucket[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const monthsQuery = useMonths();
+  const months = monthsQuery.data ?? [];
+  // 사용자가 고르기 전엔 null → 항상 최신 months[0]을 따른다(파생값). useEffect 동기화 금지.
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const month = selectedMonth ?? months[0];
 
-  useEffect(() => {
-    fetchMonths()
-      .then((ms) => { setMonths(ms); if (ms.length > 0) setMonth(ms[0]); else setLoading(false); })
-      .catch(() => { setError("월 목록을 불러올 수 없습니다."); setLoading(false); });
-  }, []);
+  const summaryQ = useSummary(month);
+  const byCategoryQ = useByCategory(month);
+  const cashflowQ = useCashflow(6);
+  const topMerchantsQ = useTopMerchants(month, 5);
+  const byEssentialQ = useByEssential(month);
 
-  useEffect(() => {
-    if (!month) return;
-    setLoading(true);
-    setError(null);
-    Promise.all([
-      fetchSummary(month), fetchByCategory(month), fetchCashflowByMonth(6),
-      fetchTopMerchants(month, 5), fetchByEssential(month),
-    ])
-      .then(([s, c, cf, t, e]) => {
-        setSummary(s); setByCategory(c); setCashflow(cf); setTopMerchants(t); setByEssential(e);
-      })
-      .catch(() => setError("대시보드 데이터를 불러오는 중 오류가 발생했습니다."))
-      .finally(() => setLoading(false));
-  }, [month]);
-
-  if (months.length === 0 && !loading) {
+  if (!monthsQuery.isLoading && months.length === 0) {
     return (
       <div className="p-8 text-zinc-400">
         아직 거래가 없습니다. /app에서 명세서를 업로드하세요.
@@ -51,21 +29,35 @@ export function DashboardPage() {
     );
   }
 
+  // 비활성 쿼리(enabled:false)는 v5에서 isPending이 계속 true → isLoading으로 판정해야 무한 스피너 방지.
+  const isLoading =
+    monthsQuery.isLoading || summaryQ.isLoading || byCategoryQ.isLoading ||
+    cashflowQ.isLoading || topMerchantsQ.isLoading || byEssentialQ.isLoading;
+  const isError =
+    monthsQuery.isError || summaryQ.isError || byCategoryQ.isError ||
+    cashflowQ.isError || topMerchantsQ.isError || byEssentialQ.isError;
+
+  const summary = summaryQ.data ?? null;
+  const byCategory = byCategoryQ.data ?? [];
+  const cashflow = cashflowQ.data ?? [];
+  const topMerchants = topMerchantsQ.data ?? [];
+  const byEssential = byEssentialQ.data ?? [];
+
   return (
     <div className="p-6 space-y-4">
-      {error && (
+      {isError && (
         <div role="alert" className="bg-red-900/30 border border-red-700 text-red-200 text-sm rounded p-3">
-          {error}
+          대시보드 데이터를 불러오는 중 오류가 발생했습니다.
         </div>
       )}
       <div className="flex items-center gap-3">
-        <select value={month} onChange={(e) => setMonth(e.target.value)}
+        <select value={month ?? ""} onChange={(e) => setSelectedMonth(e.target.value)}
           className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm" aria-label="월 선택">
           {months.map((m) => (<option key={m} value={m}>{m}</option>))}
         </select>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <p className="text-zinc-400 text-sm">로딩…</p>
       ) : (
         <div className="space-y-4">
