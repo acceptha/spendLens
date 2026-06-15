@@ -5,8 +5,12 @@ import { renderWithClient } from "../test/renderWithClient";
 const { fetchMonthsMock } = vi.hoisted(() => ({ fetchMonthsMock: vi.fn() }));
 vi.mock("../lib/api", () => ({
   fetchMonths: fetchMonthsMock,
-  fetchTransactions: vi.fn(), fetchSummary: vi.fn(), fetchByCategory: vi.fn(),
-  fetchCashflowByMonth: vi.fn(), fetchByEssential: vi.fn(), fetchTopMerchants: vi.fn(),
+  fetchTransactions: vi.fn(),
+  fetchSummary: vi.fn().mockResolvedValue(null),
+  fetchByCategory: vi.fn().mockResolvedValue([]),
+  fetchCashflowByMonth: vi.fn().mockResolvedValue([]),
+  fetchByEssential: vi.fn().mockResolvedValue([]),
+  fetchTopMerchants: vi.fn().mockResolvedValue([]),
   fetchInsight: vi.fn(), generateInsight: vi.fn(),
   patchCategory: vi.fn(), patchEssential: vi.fn(), api: { post: vi.fn() },
 }));
