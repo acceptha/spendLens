@@ -14,6 +14,7 @@ import {
   fetchByEssential,
   fetchTopMerchants,
   fetchInsight,
+  generateInsight,
   patchCategory,
   patchEssential,
   api,
@@ -206,6 +207,19 @@ export function useUploadStatement() {
       qc.invalidateQueries({ queryKey: ["months"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["insight"] });
+    },
+  });
+}
+
+export function useGenerateInsight() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ month, force }: { month: string; force: boolean }) =>
+      generateInsight(month, force),
+    onSuccess: async (data, { month }) => {
+      // 진행 중이던 useInsight fetch가 늦게 도착해 방금 결과를 덮지 않도록 cancel 후 직접 기록.
+      await qc.cancelQueries({ queryKey: qk.insight(month) });
+      qc.setQueryData(qk.insight(month), data);
     },
   });
 }
