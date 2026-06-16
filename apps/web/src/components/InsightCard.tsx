@@ -1,36 +1,28 @@
-import { useEffect, useState } from "react";
 import { Card, Title, Text } from "@tremor/react";
-import { fetchInsight, generateInsight, type InsightResponse } from "../lib/api";
+import { useInsight, useGenerateInsight } from "../lib/queries";
 
 const TYPE_LABEL: Record<string, string> = {
   top_growth: "📈 급증", anomaly: "⚠️ 이상", saving_tip: "💡 절약 팁",
 };
 
 export function InsightCard({ month }: { month: string }) {
-  const [insight, setInsight] = useState<InsightResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const insightQuery = useInsight(month);
+  const generate = useGenerateInsight();
+  const insight = insightQuery.data ?? null;
+  const loading = generate.isPending;
 
-  useEffect(() => {
-    if (!month) return;
-    setError(null);
-    fetchInsight(month).then(setInsight).catch(() => setInsight(null));
-  }, [month]);
+  let error: string | null = null;
+  if (generate.isError) {
+    const status = (generate.error as { response?: { status?: number } })?.response?.status;
+    error =
+      status === 503
+        ? "이번 달 LLM 예산을 초과했습니다. 나중에 다시 시도하세요."
+        : "인사이트 생성에 실패했습니다.";
+  }
 
-  async function onGenerate() {
-    setLoading(true);
-    setError(null);
-    try {
-      // 이미 인사이트가 있으면 "다시 생성" → force=true로 캐시 무시하고 재생성
-      setInsight(await generateInsight(month, insight != null));
-    } catch (e: any) {
-      setError(
-        e?.response?.status === 503
-          ? "이번 달 LLM 예산을 초과했습니다. 나중에 다시 시도하세요."
-          : "인사이트 생성에 실패했습니다.");
-    } finally {
-      setLoading(false);
-    }
+  function onGenerate() {
+    // 이미 인사이트가 있으면 "다시 생성" → force=true로 캐시 무시하고 재생성
+    generate.mutate({ month, force: insight != null });
   }
 
   return (
