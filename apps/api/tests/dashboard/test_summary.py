@@ -105,17 +105,20 @@ async def test_summary_income_and_savings_rate(test_db_pool):
             uid = user["id"]
             # 지출 30000
             await conn.execute(
-                "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, category, dedup_hash, raw_row) "
+                "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, "
+                "category, dedup_hash, raw_row) "
                 "VALUES ($1,'test','2026-05-01',30000,'M','etc',$2,'{}'::jsonb)",
                 uid, str(uuid4()))
             # 수입(급여) 100000 — income
             await conn.execute(
-                "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, category, dedup_hash, raw_row) "
+                "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, "
+                "category, dedup_hash, raw_row) "
                 "VALUES ($1,'test','2026-05-02',-100000,'급여','income',$2,'{}'::jsonb)",
                 uid, str(uuid4()))
             # 이체 입금 -50000 — transfer (수입에서 제외돼야 함)
             await conn.execute(
-                "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, category, dedup_hash, raw_row) "
+                "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, "
+                "category, dedup_hash, raw_row) "
                 "VALUES ($1,'test','2026-05-03',-50000,'이체','transfer',$2,'{}'::jsonb)",
                 uid, str(uuid4()))
 

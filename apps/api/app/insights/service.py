@@ -13,7 +13,7 @@ from app.dashboard import service as dash
 from app.insights import llm
 
 
-class BudgetExceeded(Exception):
+class BudgetExceededError(Exception):
     """월간 LLM 예산 초과 — 라우터에서 503."""
 
 
@@ -59,7 +59,7 @@ async def generate(
             return cached
 
     if not await budget.has_room():
-        raise BudgetExceeded()
+        raise BudgetExceededError()
 
     aggregates = await _collect_aggregates(conn, user_id, month)
     result, usage = await llm.generate_insight(aggregates)  # InsightError → 라우터 502

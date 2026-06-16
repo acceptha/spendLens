@@ -24,7 +24,10 @@ def _patch_llm(monkeypatch):
 
     async def fake(aggregates):
         return (
-            {"summary": "요약", "highlights": [{"type": "saving_tip", "title": "t", "detail": "d"}]},
+            {
+                "summary": "요약",
+                "highlights": [{"type": "saving_tip", "title": "t", "detail": "d"}],
+            },
             Usage(input_tokens=10, output_tokens=5),
         )
 

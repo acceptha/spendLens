@@ -32,7 +32,7 @@ async def generate_insight_route(
             data = await service.generate(conn, user_id, req.month, force=force)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="INVALID_MONTH_FORMAT") from exc
-    except service.BudgetExceeded as exc:
+    except service.BudgetExceededError as exc:
         raise HTTPException(status_code=503, detail="BUDGET_EXCEEDED") from exc
     except InsightError as exc:
         raise HTTPException(status_code=502, detail="INSIGHT_GENERATION_FAILED") from exc

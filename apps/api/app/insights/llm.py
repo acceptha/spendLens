@@ -58,7 +58,8 @@ async def generate_insight(aggregates: dict) -> tuple[dict, Usage]:
     client = _client()
     user_content = (
         f"다음은 {aggregates.get('month')} 월 지출 집계입니다(JSON). "
-        f"이를 바탕으로 인사이트를 생성하세요.\n{json.dumps(aggregates, ensure_ascii=False, default=str)}"
+        f"이를 바탕으로 인사이트를 생성하세요.\n"
+        f"{json.dumps(aggregates, ensure_ascii=False, default=str)}"
     )
     msg = await client.messages.create(
         model=HAIKU_MODEL_ID,
