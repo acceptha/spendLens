@@ -3,7 +3,6 @@ from uuid import uuid4
 import pytest
 
 from app.insights import service
-from app.insights.llm import InsightError
 
 
 async def _user(conn):
@@ -39,7 +38,7 @@ async def test_generate_budget_exceeded_raises(test_db_pool, monkeypatch):
     monkeypatch.setattr("app.insights.service.budget.has_room", _async_false)
     async with test_db_pool.acquire() as conn:
         uid = await _user(conn)
-        with pytest.raises(service.BudgetExceeded):
+        with pytest.raises(service.BudgetExceededError):
             await service.generate(conn, uid, "2026-05", force=False)
 
 

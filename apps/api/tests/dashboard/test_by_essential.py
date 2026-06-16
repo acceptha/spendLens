@@ -22,7 +22,8 @@ async def _signup(ac):
 async def _ins(conn, email, *, amount, category, override=None):
     u = await conn.fetchrow("SELECT id FROM users WHERE email=$1", email)
     await conn.execute(
-        "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, category, essential_override, dedup_hash, raw_row) "
+        "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, "
+        "category, essential_override, dedup_hash, raw_row) "
         "VALUES ($1,'test','2026-05-10',$2,'M',$3,$4,$5,'{}'::jsonb)",
         u["id"], amount, category, override, str(uuid4()))
 
