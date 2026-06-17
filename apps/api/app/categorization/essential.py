@@ -29,7 +29,3 @@ ESSENTIAL_DEFAULTS: dict[str, bool] = {
 ESSENTIAL_CATEGORIES: tuple[str, ...] = tuple(
     c for c, v in ESSENTIAL_DEFAULTS.items() if v
 )
-
-
-def is_essential(category: str) -> bool:
-    return ESSENTIAL_DEFAULTS.get(category, False)
