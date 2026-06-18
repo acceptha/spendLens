@@ -18,7 +18,10 @@ api.interceptors.request.use((config) => {
 
 let refreshing: Promise<string | null> | null = null;
 
-async function tryRefresh(): Promise<string | null> {
+/** Refresh the access token using the httpOnly refresh cookie. Deduped across
+ *  concurrent callers. Used both by the 401 retry interceptor and the on-boot
+ *  rehydration in App. Resolves to the new token, or null if there's no valid session. */
+export async function refreshAccessToken(): Promise<string | null> {
   if (!refreshing) {
     refreshing = (async () => {
       try {
@@ -47,7 +50,7 @@ api.interceptors.response.use(
     const original = err.config as any;
     if (err.response?.status === 401 && !original?._retried) {
       original._retried = true;
-      const newToken = await tryRefresh();
+      const newToken = await refreshAccessToken();
       if (newToken) {
         original.headers.Authorization = `Bearer ${newToken}`;
         return api(original);
