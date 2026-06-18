@@ -34,7 +34,9 @@ export async function refreshAccessToken(): Promise<string | null> {
         useAuth.getState().setAccess(newToken);
         return newToken;
       } catch {
-        useAuth.getState().setAccess(null);
+        // 토큰을 여기서 null로 만들지 않는다. 부팅 시 익명 refresh가 실패해도
+        // (그 사이) 로그인이 세팅한 토큰을 덮어쓰는 레이스를 피하기 위함.
+        // 만료 세션 로그아웃은 401 인터셉터가 책임진다(아래).
         return null;
       } finally {
         refreshing = null;
@@ -55,6 +57,8 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${newToken}`;
         return api(original);
       }
+      // refresh 실패 = 세션 만료 → 로그아웃 (여기서만 토큰을 비운다)
+      useAuth.getState().setAccess(null);
     }
     return Promise.reject(err);
   },
