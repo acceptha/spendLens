@@ -40,3 +40,21 @@ async def test_generate_insight_missing_keys_raises(monkeypatch):
     monkeypatch.setattr("app.insights.llm._client", lambda: _fake_client('{"summary": "x"}'))
     with pytest.raises(InsightError):
         await generate_insight({"month": "2026-05"})
+
+
+def _erroring_client(exc: Exception):
+    client = MagicMock()
+    client.messages = MagicMock()
+    client.messages.create = AsyncMock(side_effect=exc)
+    return client
+
+
+async def test_generate_insight_api_error_raises_insight_error(monkeypatch):
+    """LLM 호출 자체가 실패(인증/네트워크 등)하면 raw 예외가 아니라 InsightError로
+    감싸져야 한다 → 라우트가 500이 아니라 502(INSIGHT_GENERATION_FAILED)를 반환."""
+    monkeypatch.setattr(
+        "app.insights.llm._client",
+        lambda: _erroring_client(RuntimeError("anthropic 401 auth error")),
+    )
+    with pytest.raises(InsightError):
+        await generate_insight({"month": "2026-05"})
