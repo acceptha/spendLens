@@ -61,12 +61,17 @@ async def generate_insight(aggregates: dict) -> tuple[dict, Usage]:
         f"이를 바탕으로 인사이트를 생성하세요.\n"
         f"{json.dumps(aggregates, ensure_ascii=False, default=str)}"
     )
-    msg = await client.messages.create(
-        model=HAIKU_MODEL_ID,
-        max_tokens=512,
-        system=_SYSTEM,
-        messages=[{"role": "user", "content": user_content}],
-    )
+    try:
+        msg = await client.messages.create(
+            model=HAIKU_MODEL_ID,
+            max_tokens=512,
+            system=_SYSTEM,
+            messages=[{"role": "user", "content": user_content}],
+        )
+    except Exception as exc:
+        # 어떤 LLM/전송 실패(인증·레이트리밋·네트워크 등)도 InsightError로 감싼다.
+        # 라우트가 500 대신 graceful 502(INSIGHT_GENERATION_FAILED)를 반환하도록.
+        raise InsightError(f"anthropic call failed: {exc}") from exc
     text = "".join(block.text for block in msg.content if hasattr(block, "text"))
     try:
         parsed = json.loads(text)
