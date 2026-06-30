@@ -21,5 +21,13 @@ class Settings(BaseSettings):
     anthropic_api_key: str = "sk-ant-test-placeholder"
     log_level: str = "INFO"
 
+    @property
+    def llm_enabled(self) -> bool:
+        """ANTHROPIC_API_KEY가 실제 키로 설정됐는지(placeholder/빈 값 아님).
+
+        False면 인사이트는 룰 기반 폴백을 쓰고 LLM 분류는 건너뛴다.
+        """
+        return self.anthropic_api_key not in ("", "sk-ant-test-placeholder")
+
 
 settings = Settings()

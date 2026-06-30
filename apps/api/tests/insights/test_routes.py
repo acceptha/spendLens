@@ -19,8 +19,14 @@ async def _signup(ac):
     return r.json()["access_token"], email
 
 
+def _enable_llm(monkeypatch):
+    monkeypatch.setattr("app.insights.service.settings.anthropic_api_key", "sk-ant-real-xxx")
+
+
 def _patch_llm(monkeypatch):
     from app.insights.llm import Usage
+
+    _enable_llm(monkeypatch)
 
     async def fake(aggregates):
         return (
@@ -66,6 +72,8 @@ async def test_generate_then_get(test_db_pool, monkeypatch):
 
 
 async def test_generate_budget_exceeded_503(test_db_pool, monkeypatch):
+    _enable_llm(monkeypatch)
+
     async def no_room():
         return False
     monkeypatch.setattr("app.insights.service.budget.has_room", no_room)
@@ -80,6 +88,8 @@ async def test_generate_budget_exceeded_503(test_db_pool, monkeypatch):
 async def test_generate_llm_failure_502(test_db_pool, monkeypatch):
     from app.insights.llm import InsightError
 
+    _enable_llm(monkeypatch)
+
     async def boom(aggregates):
         raise InsightError("bad")
     async def room():
@@ -92,3 +102,19 @@ async def test_generate_llm_failure_502(test_db_pool, monkeypatch):
                           headers={"Authorization": f"Bearer {token}"})
         assert r.status_code == 502
         assert r.json()["detail"] == "INSIGHT_GENERATION_FAILED"
+
+
+async def test_generate_uses_rules_fallback_without_key(test_db_pool, monkeypatch):
+    """키 미설정(기본 placeholder) → LLM 없이 룰 기반으로 200 응답."""
+    monkeypatch.setattr(
+        "app.insights.service.settings.anthropic_api_key", "sk-ant-test-placeholder"
+    )
+    async with await _client() as ac:
+        token, _ = await _signup(ac)
+        r = await ac.post("/insights/generate", json={"month": "2026-05"},
+                          headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 200, r.text
+        body = r.json()
+        # 거래 0건 → 룰 기반 중립 요약
+        assert "없습니다" in body["summary"]
+        assert body["highlights"] == []

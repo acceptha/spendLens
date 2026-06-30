@@ -73,7 +73,7 @@
 ### 3.6 월간 LLM 인사이트
 - "인사이트 생성" → 집계 수치를 Claude Haiku에 전달 → 구조화 하이라이트(top_growth / anomaly / saving_tip) 생성.
 - 온디맨드 생성 후 `monthly_insights` 테이블에 캐시("다시 생성"은 캐시 무시 강제 재생성).
-- 분류와 동일한 월간 예산 버킷 공유. 예산 초과 503, 생성 실패 502(graceful).
+- **LLM/룰 자동 폴백**: `ANTHROPIC_API_KEY`가 설정돼 있으면 Claude Haiku(분류와 동일 예산 버킷 공유, 초과 시 503), **없으면 집계 기반 룰 생성기**(`insights/rules.py`)로 동일 형태 인사이트를 만든다 — 키 없이도 동작, 비용 0. LLM 생성 실패는 502(graceful).
 
 ### 3.7 게스트 데모
 - `/guest` — 로그인 없이 시드 사용자(김지철)의 한 달 거래로 분류·라벨을 미리 체험.
@@ -146,7 +146,7 @@
 
 ## 8. 알려진 한계 / 후속
 
-- **`ANTHROPIC_API_KEY`가 운영에 설정돼 있어야** LLM 분류·인사이트가 동작(미설정 시 분류는 룰북만, 인사이트는 502). `settings` 기본값이 placeholder라 미설정이 조용히 가려질 수 있음.
+- **`ANTHROPIC_API_KEY` 없이도 핵심은 동작**: 인사이트는 룰 기반 폴백, 분류는 룰북으로 처리. 키를 설정하면 LLM 인사이트(더 풍부) + unknown 가맹점 LLM 분류가 추가로 켜짐. `settings.llm_enabled`(placeholder 키가 아니면 True)로 분기.
 - `by-essential` 집계가 savings/transfer 출금을 "필수"로 분류(`ESSENTIAL_DEFAULTS`) — 의미 정의는 추후 검토.
 - 웹 번들 ~1.1MB(gzip 320KB) — 코드 스플리팅 별도 과제.
 - 미구현(carry-over): 추가 카드사 파서(현대/신한/국민 등), 가맹점 정규화, 사용자별 분류 학습, 비밀번호 재설정/이메일 인증(SMTP), PWA/모바일 푸시. 상세 `docs/retros/w3.md`.
