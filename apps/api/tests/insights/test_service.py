@@ -20,7 +20,19 @@ async def test_get_cached_returns_none_when_absent(test_db_pool):
     assert result is None
 
 
+def _enable_llm(monkeypatch):
+    """settings.llm_enabled가 True가 되도록 실제처럼 보이는 키 주입."""
+    monkeypatch.setattr("app.insights.service.settings.anthropic_api_key", "sk-ant-real-xxx")
+
+
+def _disable_llm(monkeypatch):
+    monkeypatch.setattr(
+        "app.insights.service.settings.anthropic_api_key", "sk-ant-test-placeholder"
+    )
+
+
 async def test_generate_caches_and_get_cached_returns(test_db_pool, monkeypatch):
+    _enable_llm(monkeypatch)
     monkeypatch.setattr("app.insights.service.budget.has_room", _async_true)
     monkeypatch.setattr("app.insights.service.llm.generate_insight", _fake_generate)
     monkeypatch.setattr("app.insights.service.budget.record_usage", _async_noop)
@@ -35,11 +47,37 @@ async def test_generate_caches_and_get_cached_returns(test_db_pool, monkeypatch)
 
 
 async def test_generate_budget_exceeded_raises(test_db_pool, monkeypatch):
+    _enable_llm(monkeypatch)
     monkeypatch.setattr("app.insights.service.budget.has_room", _async_false)
     async with test_db_pool.acquire() as conn:
         uid = await _user(conn)
         with pytest.raises(service.BudgetExceededError):
             await service.generate(conn, uid, "2026-05", force=False)
+
+
+async def test_generate_uses_rules_when_llm_disabled(test_db_pool, monkeypatch):
+    """키 없음(placeholder) → 룰 기반 폴백 사용, LLM/예산 호출 안 함."""
+    _disable_llm(monkeypatch)
+
+    async def _boom(*a, **k):
+        raise AssertionError("LLM 비활성인데 호출됨")
+
+    def _fake_rules(agg):
+        return {
+            "summary": "룰요약",
+            "highlights": [{"type": "anomaly", "title": "t", "detail": "d"}],
+        }
+
+    monkeypatch.setattr("app.insights.service.llm.generate_insight", _boom)
+    monkeypatch.setattr("app.insights.service.budget.has_room", _boom)
+    monkeypatch.setattr("app.insights.service.rules.build_insight", _fake_rules)
+
+    async with test_db_pool.acquire() as conn:
+        uid = await _user(conn)
+        out = await service.generate(conn, uid, "2026-05", force=False)
+        assert out["summary"] == "룰요약"
+        cached = await service.get_cached(conn, uid, "2026-05")
+        assert cached is not None
 
 
 async def _async_true():

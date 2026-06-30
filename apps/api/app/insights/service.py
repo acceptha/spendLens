@@ -10,7 +10,8 @@ import asyncpg
 
 from app.categorization import budget
 from app.dashboard import service as dash
-from app.insights import llm
+from app.insights import llm, rules
+from app.settings import settings
 
 
 class BudgetExceededError(Exception):
@@ -58,11 +59,22 @@ async def generate(
         if cached is not None:
             return cached
 
-    if not await budget.has_room():
-        raise BudgetExceededError()
-
     aggregates = await _collect_aggregates(conn, user_id, month)
-    result, usage = await llm.generate_insight(aggregates)  # InsightError → 라우터 502
+
+    if settings.llm_enabled:
+        # 키가 설정된 경우에만 LLM 사용. 예산 가드 유지.
+        if not await budget.has_room():
+            raise BudgetExceededError()
+        result, usage = await llm.generate_insight(aggregates)  # InsightError → 라우터 502
+        await budget.record_usage(
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            merchant=f"insight:{month}",
+            purpose="insight",
+        )
+    else:
+        # 키 없음 → 룰 기반 폴백 (예산/토큰 소모 없음).
+        result = rules.build_insight(aggregates)
 
     payload = {"summary": result["summary"], "highlights": result["highlights"]}
     row = await conn.fetchrow(
@@ -74,12 +86,6 @@ async def generate(
         RETURNING generated_at
         """,
         user_id, month, json.dumps(payload, ensure_ascii=False),
-    )
-    await budget.record_usage(
-        input_tokens=usage.input_tokens,
-        output_tokens=usage.output_tokens,
-        merchant=f"insight:{month}",
-        purpose="insight",
     )
     return {
         "month": month,
