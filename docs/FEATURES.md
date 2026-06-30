@@ -73,7 +73,7 @@
 ### 3.6 월간 LLM 인사이트
 - "인사이트 생성" → 집계 수치를 Claude Haiku에 전달 → 구조화 하이라이트(top_growth / anomaly / saving_tip) 생성.
 - 온디맨드 생성 후 `monthly_insights` 테이블에 캐시("다시 생성"은 캐시 무시 강제 재생성).
-- **LLM/룰 자동 폴백**: `ANTHROPIC_API_KEY`가 설정돼 있으면 Claude Haiku(분류와 동일 예산 버킷 공유, 초과 시 503), **없으면 집계 기반 룰 생성기**(`insights/rules.py`)로 동일 형태 인사이트를 만든다 — 키 없이도 동작, 비용 0. LLM 생성 실패는 502(graceful).
+- **LLM/룰 자동 폴백**: `ANTHROPIC_API_KEY`가 설정돼 있으면 Claude Haiku로 생성(분류와 동일 예산 버킷 공유, 초과 시 503). **키가 없거나(placeholder) LLM 호출이 실패하면(무효 키·네트워크·파싱 등) 집계 기반 룰 생성기**(`insights/rules.py`)로 동일 형태 인사이트를 만든다 — 어떤 상황에서도 인사이트는 생성됨, 룰 경로는 비용 0.
 
 ### 3.7 게스트 데모
 - `/guest` — 로그인 없이 시드 사용자(김지철)의 한 달 거래로 분류·라벨을 미리 체험.

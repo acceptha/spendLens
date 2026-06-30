@@ -55,6 +55,34 @@ async def test_generate_budget_exceeded_raises(test_db_pool, monkeypatch):
             await service.generate(conn, uid, "2026-05", force=False)
 
 
+async def test_generate_falls_back_to_rules_on_llm_error(test_db_pool, monkeypatch):
+    """키 설정됨 + LLM 호출 실패(InsightError) → 룰 폴백, record_usage 미호출."""
+    _enable_llm(monkeypatch)
+    monkeypatch.setattr("app.insights.service.budget.has_room", _async_true)
+
+    async def _boom(aggregates):
+        from app.insights.llm import InsightError
+        raise InsightError("broken key")
+
+    def _fake_rules(agg):
+        return {"summary": "룰폴백", "highlights": []}
+
+    called = {}
+
+    async def _rec(**kwargs):
+        called["rec"] = True
+
+    monkeypatch.setattr("app.insights.service.llm.generate_insight", _boom)
+    monkeypatch.setattr("app.insights.service.rules.build_insight", _fake_rules)
+    monkeypatch.setattr("app.insights.service.budget.record_usage", _rec)
+
+    async with test_db_pool.acquire() as conn:
+        uid = await _user(conn)
+        out = await service.generate(conn, uid, "2026-05", force=False)
+        assert out["summary"] == "룰폴백"
+        assert "rec" not in called  # 실패 시 사용량 기록 안 함
+
+
 async def test_generate_uses_rules_when_llm_disabled(test_db_pool, monkeypatch):
     """키 없음(placeholder) → 룰 기반 폴백 사용, LLM/예산 호출 안 함."""
     _disable_llm(monkeypatch)
