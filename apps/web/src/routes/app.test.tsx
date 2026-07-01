@@ -63,6 +63,19 @@ describe("AppPage", () => {
     expect(lastFilters.category).toContain(FIRST_CATEGORY);
   });
 
+  it("prefills the category filter from the ?category= query param", async () => {
+    renderWithClient(
+      <MemoryRouter initialEntries={["/app?category=coffee"]}>
+        <AppPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(fetchTransactionsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ category: ["coffee"] }),
+      ),
+    );
+  });
+
   it("keeps the previous transaction list visible during a filter transition (keepPreviousData)", async () => {
     // first load resolves with one row
     fetchTransactionsMock.mockResolvedValueOnce([
