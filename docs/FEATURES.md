@@ -148,5 +148,5 @@
 
 - **`ANTHROPIC_API_KEY` 없이도 핵심은 동작**: 인사이트는 룰 기반 폴백, 분류는 룰북으로 처리. 키를 설정하면 LLM 인사이트(더 풍부) + unknown 가맹점 LLM 분류가 추가로 켜짐. `settings.llm_enabled`(placeholder 키가 아니면 True)로 분기.
 - `by-essential` 집계가 savings/transfer 출금을 "필수"로 분류(`ESSENTIAL_DEFAULTS`) — 의미 정의는 추후 검토.
-- 웹 번들 ~1.1MB(gzip 320KB) — 코드 스플리팅 별도 과제.
+- 웹 번들: 라우트 코드 스플리팅 적용 — 초기 번들 gzip ~83KB, 대시보드의 Tremor+recharts(gzip ~231KB)는 `/dashboard` 방문 시 지연 로딩. (대시보드 청크 자체는 여전히 큼 — 추가로 recharts/tremor 분리 여지 있음.)
 - 미구현(carry-over): 추가 카드사 파서(현대/신한/국민 등), 가맹점 정규화, 사용자별 분류 학습, 비밀번호 재설정/이메일 인증(SMTP), PWA/모바일 푸시. 상세 `docs/retros/w3.md`.
