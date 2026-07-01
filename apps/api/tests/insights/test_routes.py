@@ -85,7 +85,8 @@ async def test_generate_budget_exceeded_503(test_db_pool, monkeypatch):
         assert r.json()["detail"] == "BUDGET_EXCEEDED"
 
 
-async def test_generate_llm_failure_502(test_db_pool, monkeypatch):
+async def test_generate_llm_error_falls_back_to_rules(test_db_pool, monkeypatch):
+    """키는 설정됐으나 LLM 호출이 실패하면 502로 끝내지 않고 룰 기반으로 폴백(200)."""
     from app.insights.llm import InsightError
 
     _enable_llm(monkeypatch)
@@ -100,8 +101,9 @@ async def test_generate_llm_failure_502(test_db_pool, monkeypatch):
         token, _ = await _signup(ac)
         r = await ac.post("/insights/generate", json={"month": "2026-05"},
                           headers={"Authorization": f"Bearer {token}"})
-        assert r.status_code == 502
-        assert r.json()["detail"] == "INSIGHT_GENERATION_FAILED"
+        assert r.status_code == 200, r.text
+        # 거래 0건 → 룰 기반 중립 요약으로 폴백
+        assert "없습니다" in r.json()["summary"]
 
 
 async def test_generate_uses_rules_fallback_without_key(test_db_pool, monkeypatch):

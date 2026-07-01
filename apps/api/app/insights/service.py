@@ -65,15 +65,21 @@ async def generate(
         # 키가 설정된 경우에만 LLM 사용. 예산 가드 유지.
         if not await budget.has_room():
             raise BudgetExceededError()
-        result, usage = await llm.generate_insight(aggregates)  # InsightError → 라우터 502
-        await budget.record_usage(
-            input_tokens=usage.input_tokens,
-            output_tokens=usage.output_tokens,
-            merchant=f"insight:{month}",
-            purpose="insight",
-        )
+        try:
+            result, usage = await llm.generate_insight(aggregates)
+        except llm.InsightError:
+            # 키가 설정돼 있으나 실제 호출 실패(무효 키·네트워크·파싱 등) →
+            # 502로 끝내지 않고 룰 기반으로 폴백. 인사이트는 항상 생성된다.
+            result = rules.build_insight(aggregates)
+        else:
+            await budget.record_usage(
+                input_tokens=usage.input_tokens,
+                output_tokens=usage.output_tokens,
+                merchant=f"insight:{month}",
+                purpose="insight",
+            )
     else:
-        # 키 없음 → 룰 기반 폴백 (예산/토큰 소모 없음).
+        # 키 없음(placeholder) → 룰 기반 폴백 (예산/토큰 소모 없음).
         result = rules.build_insight(aggregates)
 
     payload = {"summary": result["summary"], "highlights": result["highlights"]}
