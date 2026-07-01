@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, DonutChart, Title } from "@tremor/react";
 import { InsightCard } from "../components/InsightCard";
 import { MetricStrip } from "../components/MetricStrip";
@@ -9,6 +10,7 @@ import {
 } from "../lib/queries";
 
 export function DashboardPage() {
+  const nav = useNavigate();
   const monthsQuery = useMonths();
   const months = monthsQuery.data ?? [];
   // 사용자가 고르기 전엔 null → 항상 최신 months[0]을 따른다(파생값). useEffect 동기화 금지.
@@ -67,11 +69,15 @@ export function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <Title>카테고리별 지출</Title>
+              <p className="text-xs text-zinc-500 mt-1">카테고리를 클릭하면 해당 거래로 이동합니다.</p>
               <DonutChart
                 data={byCategory.map((c) => ({ name: c.category, value: Number(c.amount) }))}
                 category="value" index="name"
                 valueFormatter={(v) => `₩${v.toLocaleString()}`}
                 colors={["cyan","amber","rose","lime","violet","orange","blue","fuchsia","emerald","indigo","yellow","pink","teal","sky","purple","green","red","slate","gray"]}
+                onValueChange={(v) => {
+                  if (v?.name) nav(`/app?category=${encodeURIComponent(v.name)}`);
+                }}
               />
             </Card>
             <EssentialDonut data={byEssential} />

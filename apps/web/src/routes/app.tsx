@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../stores/auth";
 import { UploadDropzone } from "../components/UploadDropzone";
 import { TransactionList } from "../components/TransactionList";
@@ -13,8 +13,12 @@ import {
 } from "../lib/queries";
 
 export function AppPage() {
+  const [searchParams] = useSearchParams();
+  const categoryParam = searchParams.get("category");
   const [month, setMonth] = useState<string | null>(null);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>(() =>
+    categoryParam ? categoryParam.split(",") : [],
+  );
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const isAuthed = useAuth((s) => s.isAuthed());
@@ -23,6 +27,11 @@ export function AppPage() {
   useEffect(() => {
     if (!isAuthed) nav("/login");
   }, [isAuthed, nav]);
+
+  // 대시보드 차트에서 넘어온 ?category= 를 필터에 반영(이미 마운트돼 있어도).
+  useEffect(() => {
+    if (categoryParam) setCategories(categoryParam.split(","));
+  }, [categoryParam]);
 
   const txnsQuery = useTransactions({
     month: month ?? undefined,
