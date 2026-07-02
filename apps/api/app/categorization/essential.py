@@ -29,3 +29,9 @@ ESSENTIAL_DEFAULTS: dict[str, bool] = {
 ESSENTIAL_CATEGORIES: tuple[str, ...] = tuple(
     c for c, v in ESSENTIAL_DEFAULTS.items() if v
 )
+
+# 소비(consumption)로 보기 어려운 카테고리 — 필수/비필수 지출 분석에서 제외한다.
+# transfer(계좌 이체)는 저축성/지출성이 섞여 있어 라벨 없이는 성격 불명이고,
+# savings(저축)는 지출이 아니라 이연된 자금이다. 사용자가 이체를 실제 지출
+# 카테고리로 재분류하면 effective_category가 바뀌어 자연히 집계에 포함된다.
+NON_SPENDING_CATEGORIES: tuple[str, ...] = ("transfer", "savings")

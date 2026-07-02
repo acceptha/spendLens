@@ -9,7 +9,7 @@ from uuid import UUID
 
 import asyncpg
 
-from app.categorization.essential import ESSENTIAL_CATEGORIES
+from app.categorization.essential import ESSENTIAL_CATEGORIES, NON_SPENDING_CATEGORIES
 
 _MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 
@@ -104,6 +104,8 @@ async def by_category(conn: asyncpg.Connection, user_id: UUID, month: str) -> li
 
 async def by_essential(conn: asyncpg.Connection, user_id: UUID, month: str) -> list[dict]:
     validate_month(month)
+    # 이체/저축(성격 불명·비소비)은 필수/비필수 지출 분석에서 제외(effective 카테고리 기준 —
+    # 사용자가 이체를 실제 지출 카테고리로 재분류하면 자동으로 다시 포함됨).
     rows = await conn.fetch(
         """
         SELECT (CASE WHEN essential_override IS NOT NULL THEN essential_override
@@ -113,6 +115,7 @@ async def by_essential(conn: asyncpg.Connection, user_id: UUID, month: str) -> l
                COUNT(*) AS count
         FROM transactions
         WHERE user_id = $1 AND to_char(txn_date, 'YYYY-MM') = $2 AND amount > 0
+          AND NOT (COALESCE(user_category_override, category) = ANY($4::text[]))
         GROUP BY (CASE WHEN essential_override IS NOT NULL THEN essential_override
                        ELSE (COALESCE(user_category_override, category) = ANY($3::text[]))
                   END)
@@ -120,7 +123,7 @@ async def by_essential(conn: asyncpg.Connection, user_id: UUID, month: str) -> l
                        ELSE (COALESCE(user_category_override, category) = ANY($3::text[]))
                   END) DESC
         """,
-        user_id, month, list(ESSENTIAL_CATEGORIES),
+        user_id, month, list(ESSENTIAL_CATEGORIES), list(NON_SPENDING_CATEGORIES),
     )
     return [{"essential": r["essential"], "amount": r["amount"], "count": r["count"]} for r in rows]
 
