@@ -33,6 +33,25 @@ async def _seed(conn, email, *, merchant, amount, txn_date="2026-05-15"):
     )
 
 
+async def test_top_merchants_excludes_transfer_savings(test_db_pool):
+    async with await _client() as ac:
+        token, email = await _signup_and_token(ac)
+        async with test_db_pool.acquire() as conn:
+            await _seed(conn, email, merchant="스타벅스", amount=9000)  # unknown → 포함
+            uid = (await conn.fetchrow("SELECT id FROM users WHERE email=$1", email))["id"]
+            await conn.execute(
+                "INSERT INTO transactions (user_id, source_type, txn_date, amount, "
+                "merchant_raw, category, dedup_hash, raw_row) "
+                "VALUES ($1,'test','2026-05-15',99999,'저축이체','savings',$2,'{}'::jsonb)",
+                uid, str(uuid4()))
+
+        r = await ac.get("/dashboard/top-merchants?month=2026-05&limit=5",
+                         headers={"Authorization": f"Bearer {token}"})
+        merchants = {m["merchant_raw"] for m in r.json()}
+        assert "스타벅스" in merchants
+        assert "저축이체" not in merchants
+
+
 async def test_top_merchants_groups_and_sums(test_db_pool):
     async with await _client() as ac:
         token, email = await _signup_and_token(ac)

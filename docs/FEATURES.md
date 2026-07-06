@@ -147,6 +147,6 @@
 ## 8. 알려진 한계 / 후속
 
 - **`ANTHROPIC_API_KEY` 없이도 핵심은 동작**: 인사이트는 룰 기반 폴백, 분류는 룰북으로 처리. 키를 설정하면 LLM 인사이트(더 풍부) + unknown 가맹점 LLM 분류가 추가로 켜짐. `settings.llm_enabled`(placeholder 키가 아니면 True)로 분기.
-- 필수/비필수 지출 분석(`by-essential`)은 `transfer`(이체)·`savings`(저축)를 **제외**한다(비소비/성격 불명, `NON_SPENDING_CATEGORIES`). 이체를 실제 지출 카테고리로 재분류하면 effective_category 기준으로 자동 포함. (지출 총액·카테고리 도넛은 아직 이체/저축 포함 — 일관성은 별도 검토.)
+- **모든 "지출" 집계는 소비 기준** — `transfer`(이체)·`savings`(저축)를 일관되게 제외한다(`NON_SPENDING_CATEGORIES`): 지출 총액/전월/건수(summary), 카테고리 도넛(by_category), 현금흐름 지출(cashflow expense), Top 가맹점(top_merchants), 필수/비필수(by_essential). effective_category 기준이라 이체를 실제 지출 카테고리로 재분류하면 자동 포함. (이체는 저축성·지출성이 섞여 라벨 없이는 성격 불명, 저축은 비소비.)
 - 웹 번들: 라우트 코드 스플리팅 적용 — 초기 번들 gzip ~83KB, 대시보드의 Tremor+recharts(gzip ~231KB)는 `/dashboard` 방문 시 지연 로딩. (대시보드 청크 자체는 여전히 큼 — 추가로 recharts/tremor 분리 여지 있음.)
 - 미구현(carry-over): 추가 카드사 파서(현대/신한/국민 등), 가맹점 정규화, 사용자별 분류 학습, 비밀번호 재설정/이메일 인증(SMTP), PWA/모바일 푸시. 상세 `docs/retros/w3.md`.

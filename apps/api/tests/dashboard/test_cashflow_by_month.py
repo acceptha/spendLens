@@ -29,6 +29,22 @@ async def _ins(conn, email, *, d, amount, category="etc"):
         u["id"], datetime.date.fromisoformat(d), amount, category, str(uuid4()))
 
 
+async def test_cashflow_excludes_transfer_savings_from_expense(test_db_pool):
+    async with await _client() as ac:
+        token, email = await _signup(ac)
+        async with test_db_pool.acquire() as conn:
+            this_month = datetime.date.today().strftime("%Y-%m")
+            d = f"{this_month}-05"
+            await _ins(conn, email, d=d, amount=20000, category="etc")       # 지출
+            await _ins(conn, email, d=d, amount=50000, category="transfer")  # 제외
+            await _ins(conn, email, d=d, amount=30000, category="savings")   # 제외
+
+        r = await ac.get("/dashboard/cashflow-by-month?last_n=6",
+                         headers={"Authorization": f"Bearer {token}"})
+        cur = {row["month"]: row for row in r.json()}[this_month]
+        assert float(cur["expense"]) == 20000
+
+
 async def test_cashflow_by_month_splits_expense_income(test_db_pool):
     async with await _client() as ac:
         token, email = await _signup(ac)
