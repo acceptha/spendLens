@@ -31,22 +31,26 @@ async def summary(conn: asyncpg.Connection, user_id: UUID, month: str) -> dict:
     validate_month(month)
     prev = _prev_month(month)
 
+    # "지출"은 소비 기준 — 이체/저축(비소비, 성격 불명)은 제외한다(effective 카테고리).
+    non_spending = list(NON_SPENDING_CATEGORIES)
     row = await conn.fetchrow(
         """
         SELECT COALESCE(SUM(amount), 0)::numeric AS total,
                COUNT(*) AS cnt
         FROM transactions
         WHERE user_id = $1 AND to_char(txn_date, 'YYYY-MM') = $2 AND amount > 0
+          AND NOT (COALESCE(user_category_override, category) = ANY($3::text[]))
         """,
-        user_id, month,
+        user_id, month, non_spending,
     )
     prev_row = await conn.fetchrow(
         """
         SELECT COALESCE(SUM(amount), 0)::numeric AS total
         FROM transactions
         WHERE user_id = $1 AND to_char(txn_date, 'YYYY-MM') = $2 AND amount > 0
+          AND NOT (COALESCE(user_category_override, category) = ANY($3::text[]))
         """,
-        user_id, prev,
+        user_id, prev, non_spending,
     )
     income_row = await conn.fetchrow(
         """
@@ -94,10 +98,11 @@ async def by_category(conn: asyncpg.Connection, user_id: UUID, month: str) -> li
                COUNT(*) AS count
         FROM transactions
         WHERE user_id = $1 AND to_char(txn_date, 'YYYY-MM') = $2 AND amount > 0
+          AND NOT (COALESCE(user_category_override, category) = ANY($3::text[]))
         GROUP BY COALESCE(user_category_override, category)
         ORDER BY amount DESC
         """,
-        user_id, month,
+        user_id, month, list(NON_SPENDING_CATEGORIES),
     )
     return [{"category": r["category"], "amount": r["amount"], "count": r["count"]} for r in rows]
 
@@ -134,7 +139,10 @@ async def cashflow_by_month(conn: asyncpg.Connection, user_id: UUID, last_n: int
     rows = await conn.fetch(
         """
         SELECT to_char(txn_date, 'YYYY-MM') AS month,
-               COALESCE(SUM(amount) FILTER (WHERE amount > 0), 0)::numeric AS expense,
+               COALESCE(SUM(amount) FILTER (
+                   WHERE amount > 0
+                     AND NOT (COALESCE(user_category_override, category) = ANY($3::text[]))
+               ), 0)::numeric AS expense,
                COALESCE(SUM(-amount) FILTER (
                    WHERE amount < 0 AND COALESCE(user_category_override, category) <> 'transfer'
                ), 0)::numeric AS income
@@ -144,7 +152,7 @@ async def cashflow_by_month(conn: asyncpg.Connection, user_id: UUID, last_n: int
         GROUP BY to_char(txn_date, 'YYYY-MM')
         ORDER BY to_char(txn_date, 'YYYY-MM') ASC
         """,
-        user_id, last_n,
+        user_id, last_n, list(NON_SPENDING_CATEGORIES),
     )
     return [{"month": r["month"], "expense": r["expense"], "income": r["income"]} for r in rows]
 
@@ -162,11 +170,12 @@ async def top_merchants(
                COUNT(*) AS count
         FROM transactions
         WHERE user_id = $1 AND to_char(txn_date, 'YYYY-MM') = $2 AND amount > 0
+          AND NOT (COALESCE(user_category_override, category) = ANY($4::text[]))
         GROUP BY merchant_raw
         ORDER BY amount DESC
         LIMIT $3
         """,
-        user_id, month, limit,
+        user_id, month, limit, list(NON_SPENDING_CATEGORIES),
     )
     return [
         {"merchant_raw": r["merchant_raw"], "amount": r["amount"], "count": r["count"]}

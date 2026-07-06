@@ -33,6 +33,25 @@ async def _seed(conn, email, *, txn_date, amount):
     )
 
 
+async def test_summary_excludes_transfer_savings_from_total(test_db_pool):
+    async with await _client() as ac:
+        token, email = await _signup_and_token(ac)
+        async with test_db_pool.acquire() as conn:
+            uid = (await conn.fetchrow("SELECT id FROM users WHERE email=$1", email))["id"]
+            for amt, cat in [(20000, "etc"), (50000, "transfer"), (30000, "savings")]:
+                await conn.execute(
+                    "INSERT INTO transactions (user_id, source_type, txn_date, amount, "
+                    "merchant_raw, category, dedup_hash, raw_row) "
+                    "VALUES ($1,'test','2026-05-01',$2,'M',$3,$4,'{}'::jsonb)",
+                    uid, amt, cat, str(uuid4()))
+
+        r = await ac.get("/dashboard/summary?month=2026-05",
+                         headers={"Authorization": f"Bearer {token}"})
+        body = r.json()
+        assert float(body["total_amount"]) == 20000  # transfer/savings 제외
+        assert body["transaction_count"] == 1
+
+
 async def test_summary_basic(test_db_pool):
     async with await _client() as ac:
         token, email = await _signup_and_token(ac)

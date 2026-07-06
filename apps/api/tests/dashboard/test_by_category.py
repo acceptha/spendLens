@@ -34,6 +34,22 @@ async def _seed(conn, email, *, txn_date, amount, category, override=None):
     )
 
 
+async def test_by_category_excludes_transfer_and_savings(test_db_pool):
+    async with await _client() as ac:
+        token, email = await _signup_and_token(ac)
+        async with test_db_pool.acquire() as conn:
+            await _seed(conn, email, txn_date="2026-05-01", amount=5000, category="coffee")
+            await _seed(conn, email, txn_date="2026-05-02", amount=50000, category="transfer")
+            await _seed(conn, email, txn_date="2026-05-03", amount=30000, category="savings")
+
+        r = await ac.get("/dashboard/by-category?month=2026-05",
+                         headers={"Authorization": f"Bearer {token}"})
+        cats = {c["category"] for c in r.json()}
+        assert "coffee" in cats
+        assert "transfer" not in cats
+        assert "savings" not in cats
+
+
 async def test_by_category_groups_correctly(test_db_pool):
     async with await _client() as ac:
         token, email = await _signup_and_token(ac)
