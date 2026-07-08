@@ -3,7 +3,11 @@
 > 광고 없는 가계부 · AI 코칭 · 데이터는 내 서버
 
 ## Status
-**W3 complete** — 본인 모드 UI 완성: 거래 필터/검색·인라인 카테고리 오버라이드·`/dashboard` (Tremor 4 위젯)·enum 14→19·통장 룰북 보강. Live:
+**W5 complete** — 프론트 TanStack Query 전면 전환(캐시·낙관적 갱신·검색 debounce), 부팅 시 인증 재수화. (W4: 월간 LLM 인사이트 + 룰 기반 폴백 · 입금/소득 분석 · 필수/비필수 토글 / W3: 본인 모드 UI · Tremor 대시보드 · 카테고리 19종 · 통장 룰북)
+
+> 전체 기능 · 아키텍처 · API 레퍼런스는 **[`docs/FEATURES.md`](docs/FEATURES.md)** 참고.
+
+Live:
 - **Web:** https://spendlens.suim-app.store
 - **Signup:** https://spendlens.suim-app.store/signup
 - **App (login required):** https://spendlens.suim-app.store/app
@@ -12,10 +16,10 @@
 - **API healthz:** https://api.spendlens.suim-app.store/healthz
 
 ## Tech Stack
-- Frontend: React + Vite + TypeScript + Tailwind + Zustand + **Tremor** (대시보드 차트)
+- Frontend: React + Vite + TypeScript + Tailwind + Zustand + **TanStack Query** (서버 상태) + **Tremor** (대시보드 차트)
 - Backend: FastAPI + pandas + openpyxl + asyncpg + Alembic
 - Cache / Rate limit: Redis 7 (Lightsail Docker)
-- AI: Claude Haiku 4.5 (카테고리 분류 폴백, 월 $5 cap)
+- AI: Claude Haiku 4.5 (카테고리 분류 + 월간 인사이트, 월 예산 cap). 키 없거나 호출 실패 시 룰 기반 인사이트로 폴백.
 - Deploy: Vercel + AWS Lightsail (Docker Compose + Caddy + PostgreSQL + Redis) + GitHub Actions
 
 ## 지원 명세서 포맷 (W3 기준)
@@ -57,3 +61,5 @@ pnpm -C apps/web dev
 - W1 spec/plan: `docs/superpowers/specs/2026-04-29-w1-skeleton-and-samsung-xlsx-parser-design.md`, `plans/2026-04-30-w1-skeleton-and-samsung-xlsx-parser.md`
 - W2 spec/plan: `docs/superpowers/specs/2026-05-13-w2-multi-user-llm-categorization-design.md`, `plans/2026-05-13-w2-multi-user-llm-categorization.md`
 - W3 spec/plan: `docs/superpowers/specs/2026-05-20-w3-personal-mode-ui-design.md`, `plans/2026-05-20-w3-personal-mode-ui.md`
+- W4 spec/plan: `docs/superpowers/specs/2026-06-10-w4-analytics-enhancement-design.md`, `plans/2026-06-10-w4-analytics-enhancement.md`
+- W5 spec/plan: `docs/superpowers/specs/2026-06-12-w5-tanstack-query-migration-design-v2.md`, `plans/2026-06-12-w5-tanstack-query-migration.md`

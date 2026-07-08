@@ -73,6 +73,11 @@ export function AppPage() {
         setSearch={setSearch}
       />
       <div className="max-w-3xl mx-auto p-8">
+        {txnsQuery.isError && (
+          <div role="alert" className="mb-4 bg-red-900/30 border border-red-700 text-red-200 text-sm rounded p-3">
+            거래를 불러오는 중 오류가 발생했습니다.
+          </div>
+        )}
         {txnsQuery.isPending ? (
           <p className="text-zinc-400 text-sm">로딩…</p>
         ) : (

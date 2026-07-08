@@ -63,6 +63,13 @@ describe("AppPage", () => {
     expect(lastFilters.category).toContain(FIRST_CATEGORY);
   });
 
+  it("shows an error banner when transactions fail to load", async () => {
+    fetchTransactionsMock.mockReset().mockRejectedValue(new Error("boom"));
+    renderWithClient(<MemoryRouter><AppPage /></MemoryRouter>);
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/오류가 발생/));
+  });
+
   it("prefills the category filter from the ?category= query param", async () => {
     renderWithClient(
       <MemoryRouter initialEntries={["/app?category=coffee"]}>
