@@ -33,6 +33,27 @@ async def _seed(conn, email, *, merchant, amount, txn_date="2026-05-15"):
     )
 
 
+async def test_top_merchants_groups_by_normalized(test_db_pool):
+    """지점만 다른 동일 브랜드는 merchant_normalized로 하나로 묶인다."""
+    async with await _client() as ac:
+        token, email = await _signup_and_token(ac)
+        async with test_db_pool.acquire() as conn:
+            uid = (await conn.fetchrow("SELECT id FROM users WHERE email=$1", email))["id"]
+            for raw in ["스타벅스 강남점", "스타벅스 역삼점"]:
+                await conn.execute(
+                    "INSERT INTO transactions (user_id, source_type, txn_date, amount, "
+                    "merchant_raw, merchant_normalized, category, dedup_hash, raw_row) "
+                    "VALUES ($1,'test','2026-05-15',5000,$2,'스타벅스','coffee',$3,'{}'::jsonb)",
+                    uid, raw, str(uuid4()))
+
+        r = await ac.get("/dashboard/top-merchants?month=2026-05&limit=5",
+                         headers={"Authorization": f"Bearer {token}"})
+        sbux = [m for m in r.json() if m["merchant_raw"] == "스타벅스"]
+        assert len(sbux) == 1
+        assert float(sbux[0]["amount"]) == 10000
+        assert sbux[0]["count"] == 2
+
+
 async def test_top_merchants_excludes_transfer_savings(test_db_pool):
     async with await _client() as ac:
         token, email = await _signup_and_token(ac)
