@@ -6,6 +6,7 @@ from uuid import UUID
 
 import asyncpg
 
+from app.categorization.merchant import normalize_merchant
 from app.transactions.schemas import TransactionIn
 
 
@@ -49,17 +50,18 @@ async def insert_transactions(
             """
             INSERT INTO transactions (
               user_id, source_file_id, source_type,
-              txn_date, txn_time, amount, merchant_raw,
+              txn_date, txn_time, amount, merchant_raw, merchant_normalized,
               approval_no, card_last4, installment_months,
               is_canceled, category, dedup_hash, raw_row
             ) VALUES (
-              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb
+              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb
             )
             ON CONFLICT (user_id, dedup_hash) DO NOTHING
             RETURNING id
             """,
             user_id, source_file_id, source_type,
             t.txn_date, t.txn_time, t.amount, t.merchant_raw,
+            normalize_merchant(t.merchant_raw),
             t.approval_no, t.card_last4, t.installment_months,
             t.is_canceled, t.category, dedup,
             json.dumps(t.raw_row, default=str, ensure_ascii=False),

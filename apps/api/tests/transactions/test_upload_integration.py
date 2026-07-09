@@ -42,7 +42,12 @@ async def test_upload_then_list(auth_headers):
 
         lst = await client.get("/transactions", headers=headers)
         assert lst.status_code == 200
-        assert len(lst.json()) >= 6
+        rows = lst.json()
+        assert len(rows) >= 6
+        # 업로드 시 merchant_normalized가 채워진다(정규화 엔진 배선 확인)
+        assert all(t.get("merchant_normalized") for t in rows)
+        starbucks = [t for t in rows if "스타벅스" in t["merchant_raw"]]
+        assert starbucks and starbucks[0]["merchant_normalized"] == "스타벅스"
 
 
 @pytest.mark.asyncio

@@ -165,19 +165,20 @@ async def top_merchants(
         raise ValueError(f"limit out of range: {limit}")
     rows = await conn.fetch(
         """
-        SELECT merchant_raw,
+        SELECT COALESCE(merchant_normalized, merchant_raw) AS merchant,
                COALESCE(SUM(amount), 0)::numeric AS amount,
                COUNT(*) AS count
         FROM transactions
         WHERE user_id = $1 AND to_char(txn_date, 'YYYY-MM') = $2 AND amount > 0
           AND NOT (COALESCE(user_category_override, category) = ANY($4::text[]))
-        GROUP BY merchant_raw
+        GROUP BY COALESCE(merchant_normalized, merchant_raw)
         ORDER BY amount DESC
         LIMIT $3
         """,
         user_id, month, limit, list(NON_SPENDING_CATEGORIES),
     )
+    # 응답 필드명은 merchant_raw 유지(프론트 무변경) — 값은 대표(정규화) 가맹점명.
     return [
-        {"merchant_raw": r["merchant_raw"], "amount": r["amount"], "count": r["count"]}
+        {"merchant_raw": r["merchant"], "amount": r["amount"], "count": r["count"]}
         for r in rows
     ]

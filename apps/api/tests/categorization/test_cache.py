@@ -1,20 +1,8 @@
-import pytest
-
-from app.categorization.cache import get, normalize_merchant
+from app.categorization.cache import get
 from app.categorization.cache import set as cache_set
 
-
-@pytest.mark.parametrize(
-    "raw,normalized",
-    [
-        ("스타벅스 강남점", "스타벅스강남"),
-        ("(주)이디야커피", "이디야커피"),
-        ("이마트 성수1호점", "이마트성수"),
-        ("STARBUCKS COFFEE  ", "starbucks coffee"),
-    ],
-)
-def test_normalize_strips_suffixes_and_whitespace(raw, normalized):
-    assert normalize_merchant(raw) == normalized
+# 가맹점명 정규화 로직 자체의 검증은 tests/categorization/test_merchant.py 로 이동.
+# 여기서는 Redis 캐시 동작(get/set/정규화 키 공유)만 검증한다.
 
 
 async def test_cache_miss_returns_none():
@@ -30,6 +18,6 @@ async def test_cache_set_then_get_roundtrip():
 
 async def test_cache_key_normalized_so_different_writes_collapse():
     await cache_set("(주)스타벅스 강남점", "coffee")
-    # 다른 표기지만 정규화 후 동일 키
+    # 다른 표기지만 정규화 후 동일 키(둘 다 '스타벅스')
     result = await get("스타벅스 강남점 ")
     assert result == "coffee"

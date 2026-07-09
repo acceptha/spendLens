@@ -58,6 +58,7 @@
 - 카테고리 19종(housing, utilities, telecom, groceries, health, insurance, transport, lunch, dinner, savings, income, transfer, coffee, snack_late, subscription, entertainment, shopping, etc, unknown).
 - **월간 LLM 예산 가드** — Redis 버킷에 비용 누적, 한도 초과 시 LLM 호출 차단(분류·인사이트 공유).
 - 사용자가 거래별 카테고리를 직접 오버라이드 가능. `effective_category = COALESCE(user_override, auto_category)` 단일 진실 출처.
+- **가맹점 정규화**(`categorization/merchant.py`): 별칭 테이블(주요 체인 정식명) + 휴리스틱(끝의 지점 토큰 제거)으로 "씨유(CU) 구로JNK점"→`CU`처럼 브랜드 단위로 묶는다. 업로드 시 `merchant_normalized`에 저장하고, Top 가맹점 그룹핑과 LLM 캐시 키(브랜치 통일 → hit↑)에 사용. 룰북은 raw 매칭 유지.
 
 ### 3.4 거래 조회 / 관리
 - 목록: 월 필터, 카테고리 다중 필터, 가맹점 검색(300ms 디바운스), 페이지네이션.
