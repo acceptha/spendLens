@@ -1,8 +1,37 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      manifest: {
+        name: "SpendLens",
+        short_name: "SpendLens",
+        description: "광고 없는 개인 가계부 — 명세서 업로드·자동 분류·월간 인사이트",
+        lang: "ko",
+        theme_color: "#2563eb",
+        background_color: "#09090b",
+        display: "standalone",
+        start_url: "/",
+        icons: [
+          { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },
+          {
+            src: "maskable-icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
+      },
+    }),
+  ],
   resolve: {
     // Prefer TypeScript sources over stale compiled JS siblings.
     extensions: [".tsx", ".ts", ".mjs", ".jsx", ".js", ".json"],

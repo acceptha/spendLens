@@ -122,6 +122,8 @@
 
 `/app`·`/dashboard`는 `ProtectedRoute`로 보호(부팅 시 토큰 재수화 후 판정). 서버 상태는 전부 TanStack Query(`lib/queries.ts`의 쿼리 키 팩토리 + useQuery/useMutation 훅)로 관리.
 
+**PWA(설치형)**: `vite-plugin-pwa`(Workbox)로 매니페스트 + 서비스워커(앱 셸 프리캐시, `autoUpdate`) 생성. 홈 화면 추가·standalone 실행·앱 셸 오프라인 로드 지원(데이터는 온라인 필요). 아이콘/파비콘 `public/`. 웹 푸시·런타임 데이터 캐싱은 비목표.
+
 ---
 
 ## 6. 주차별 변천 (sub-projects)
