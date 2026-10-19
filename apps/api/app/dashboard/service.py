@@ -136,21 +136,37 @@ async def by_essential(conn: asyncpg.Connection, user_id: UUID, month: str) -> l
 async def cashflow_by_month(conn: asyncpg.Connection, user_id: UUID, last_n: int) -> list[dict]:
     if not (1 <= last_n <= 24):
         raise ValueError(f"last_n out of range: {last_n}")
+    # 창은 "오늘"이 아니라 사용자의 마지막 거래 월 기준 —
+    # 명세서를 몇 달 늦게 올려도 추세가 비지 않는다.
+    # 첫 거래 월 이전은 자르고, 사이의 빈 달은 0으로 채워 차트 축이 연속되게 한다.
     rows = await conn.fetch(
         """
-        SELECT to_char(txn_date, 'YYYY-MM') AS month,
-               COALESCE(SUM(amount) FILTER (
-                   WHERE amount > 0
-                     AND NOT (COALESCE(user_category_override, category) = ANY($3::text[]))
+        WITH bounds AS (
+            SELECT date_trunc('month', MIN(txn_date))::date AS lo,
+                   date_trunc('month', MAX(txn_date))::date AS hi
+            FROM transactions WHERE user_id = $1
+        ), months AS (
+            SELECT generate_series(
+                       GREATEST(lo, (hi - ($2 - 1) * INTERVAL '1 month')::date),
+                       hi, INTERVAL '1 month')::date AS m
+            FROM bounds WHERE hi IS NOT NULL
+        )
+        SELECT to_char(months.m, 'YYYY-MM') AS month,
+               COALESCE(SUM(t.amount) FILTER (
+                   WHERE t.amount > 0
+                     AND NOT (COALESCE(t.user_category_override, t.category) = ANY($3::text[]))
                ), 0)::numeric AS expense,
-               COALESCE(SUM(-amount) FILTER (
-                   WHERE amount < 0 AND COALESCE(user_category_override, category) <> 'transfer'
+               COALESCE(SUM(-t.amount) FILTER (
+                   WHERE t.amount < 0
+                     AND COALESCE(t.user_category_override, t.category) <> 'transfer'
                ), 0)::numeric AS income
-        FROM transactions
-        WHERE user_id = $1
-          AND txn_date >= date_trunc('month', CURRENT_DATE - ($2 - 1) * INTERVAL '1 month')
-        GROUP BY to_char(txn_date, 'YYYY-MM')
-        ORDER BY to_char(txn_date, 'YYYY-MM') ASC
+        FROM months
+        LEFT JOIN transactions t
+          ON t.user_id = $1
+         AND t.txn_date >= months.m
+         AND t.txn_date < months.m + INTERVAL '1 month'
+        GROUP BY months.m
+        ORDER BY months.m ASC
         """,
         user_id, last_n, list(NON_SPENDING_CATEGORIES),
     )

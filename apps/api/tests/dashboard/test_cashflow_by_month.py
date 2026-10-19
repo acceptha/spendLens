@@ -70,3 +70,40 @@ async def test_cashflow_invalid_last_n_400(test_db_pool):
         r = await ac.get("/dashboard/cashflow-by-month?last_n=99",
                          headers={"Authorization": f"Bearer {token}"})
         assert r.status_code == 400
+
+
+async def test_cashflow_anchors_to_latest_data_month_and_fills_gaps(test_db_pool):
+    # 오래된 명세서만 올린 경우에도(오늘 기준 6개월 밖) 추세가 보여야 하고, 빈 달은 0으로 채운다.
+    async with await _client() as ac:
+        token, email = await _signup(ac)
+        async with test_db_pool.acquire() as conn:
+            await _ins(conn, email, d="2024-01-10", amount=10000)
+            await _ins(conn, email, d="2024-03-10", amount=30000)
+
+        r = await ac.get("/dashboard/cashflow-by-month?last_n=6",
+                         headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 200, r.text
+        rows = r.json()
+        assert [row["month"] for row in rows] == ["2024-01", "2024-02", "2024-03"]
+        assert [float(row["expense"]) for row in rows] == [10000, 0, 30000]
+
+
+async def test_cashflow_window_is_last_n_months_ending_at_latest(test_db_pool):
+    async with await _client() as ac:
+        token, email = await _signup(ac)
+        async with test_db_pool.acquire() as conn:
+            for m in range(1, 11):  # 2024-01 ~ 2024-10
+                await _ins(conn, email, d=f"2024-{m:02d}-15", amount=1000 * m)
+
+        r = await ac.get("/dashboard/cashflow-by-month?last_n=3",
+                         headers={"Authorization": f"Bearer {token}"})
+        assert [row["month"] for row in r.json()] == ["2024-08", "2024-09", "2024-10"]
+
+
+async def test_cashflow_empty_for_user_without_transactions(test_db_pool):
+    async with await _client() as ac:
+        token, _ = await _signup(ac)
+        r = await ac.get("/dashboard/cashflow-by-month?last_n=6",
+                         headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 200
+        assert r.json() == []
