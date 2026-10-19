@@ -12,6 +12,8 @@ export function CashflowChart({ data }: { data: CashflowBucket[] }) {
         categories={["지출", "수입"]}
         valueFormatter={formatWon}
         colors={["cyan", "emerald"]}
+        yAxisWidth={88}
+        intervalType="preserveStartEnd"
       />
     </Card>
   );
