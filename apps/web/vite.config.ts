@@ -29,6 +29,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
+        // /api/* 는 API 프록시 — SW의 SPA 폴백이 가로채지 않게 한다.
+        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ],
