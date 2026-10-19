@@ -14,7 +14,12 @@ from app.transactions.schemas import (
     TransactionPatchRequest,
     UploadResponse,
 )
-from app.transactions.service import insert_transactions, update_category, update_essential
+from app.transactions.service import (
+    insert_transactions,
+    remove_transaction,
+    update_category,
+    update_essential,
+)
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -165,4 +170,15 @@ async def patch_transaction_essential(
             conn, user_id, transaction_id, req.essential_override
         )
     if not updated:
+        raise HTTPException(status_code=404, detail="NOT_FOUND")
+
+
+@router.delete("/{transaction_id}", status_code=204)
+async def delete_transaction(
+    transaction_id: UUID,
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
+) -> None:
+    async with acquire() as conn:
+        deleted = await remove_transaction(conn, user_id, transaction_id)
+    if not deleted:
         raise HTTPException(status_code=404, detail="NOT_FOUND")
