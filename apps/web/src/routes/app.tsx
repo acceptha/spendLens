@@ -10,6 +10,7 @@ import {
   useUploadStatement,
   useCategoryOverride,
   useEssentialOverride,
+  useDeleteTransaction,
 } from "../lib/queries";
 
 export function AppPage() {
@@ -42,6 +43,7 @@ export function AppPage() {
   const upload = useUploadStatement();
   const categoryOverride = useCategoryOverride();
   const essentialOverride = useEssentialOverride();
+  const deleteTxn = useDeleteTransaction();
 
   const txns = txnsQuery.data ?? [];
 
@@ -88,6 +90,7 @@ export function AppPage() {
                 categoryOverride.mutate({ id, category: newCategory })}
               onEssentialChange={(id, override) =>
                 essentialOverride.mutate({ id, essentialOverride: override })}
+              onDelete={(id) => deleteTxn.mutate(id)}
             />
           </div>
         )}

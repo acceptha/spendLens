@@ -111,6 +111,10 @@ export async function patchCategory(id: string, category: string): Promise<void>
   await api.patch(`/transactions/${id}`, { category });
 }
 
+export async function deleteTransaction(id: string): Promise<void> {
+  await api.delete(`/transactions/${id}`);
+}
+
 export type SummaryResponse = {
   month: string;
   total_amount: string;
