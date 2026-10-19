@@ -17,6 +17,7 @@ import {
   generateInsight,
   patchCategory,
   patchEssential,
+  deleteTransaction,
   api,
   type TransactionRow,
 } from "./api";
@@ -186,6 +187,31 @@ export function useEssentialOverride() {
         qc.invalidateQueries({ queryKey: ["transactions"] });
         qc.invalidateQueries({ queryKey: ["dashboard"] });
       }
+    },
+  });
+}
+
+export function useDeleteTransaction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteTransaction(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ["transactions"] });
+      const snapshots = qc.getQueriesData<TransactionRow[]>({ queryKey: ["transactions"] });
+      for (const [key, rows] of snapshots) {
+        if (rows) qc.setQueryData<TransactionRow[]>(key, rows.filter((r) => r.id !== id));
+      }
+      return { snapshots };
+    },
+    onError: (_err, _id, context) => {
+      rollbackTxnCaches(qc, context?.snapshots);
+    },
+    onSettled: () => {
+      // 삭제는 월 목록·집계·인사이트 모두에 영향.
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["months"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["insight"] });
     },
   });
 }

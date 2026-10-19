@@ -10,9 +10,10 @@ type Props = {
   items: TransactionRow[];
   onCategoryChange?: (id: string, newCategory: string) => void;
   onEssentialChange?: (id: string, override: boolean | null) => void;
+  onDelete?: (id: string) => void;
 };
 
-export function TransactionList({ items, onCategoryChange, onEssentialChange }: Props) {
+export function TransactionList({ items, onCategoryChange, onEssentialChange, onDelete }: Props) {
   return (
     <ul className="space-y-2" data-testid="txn-list">
       {items.map((t) => (
@@ -43,6 +44,17 @@ export function TransactionList({ items, onCategoryChange, onEssentialChange }: 
                 effective={t.effective_essential ?? false}
                 onChange={(ov) => onEssentialChange(t.id, ov)}
               />
+            )}
+            {onDelete && (
+              <button
+                onClick={() => {
+                  if (window.confirm(`${t.txn_date} · ${t.merchant_raw} 거래를 삭제할까요?`)) onDelete(t.id);
+                }}
+                className="ml-auto text-zinc-500 hover:text-red-400"
+                aria-label={`삭제: ${t.merchant_raw}`}
+              >
+                삭제
+              </button>
             )}
           </div>
         </li>

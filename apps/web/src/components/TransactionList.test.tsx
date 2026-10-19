@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 import { TransactionList, type Txn } from "./TransactionList";
 
 function makeTxn(overrides: Partial<Txn>): Txn {
@@ -46,5 +46,26 @@ describe("TransactionList", () => {
     ];
     render(<TransactionList items={items} />);
     expect(screen.getByText("[Canceled]")).toBeInTheDocument();
+  });
+
+  it("deletes only after the user confirms", () => {
+    const onDelete = vi.fn();
+    const confirm = vi.spyOn(window, "confirm");
+    render(<TransactionList items={[makeTxn({})]} onDelete={onDelete} />);
+    const btn = screen.getByRole("button", { name: /삭제: 스타벅스/ });
+
+    confirm.mockReturnValueOnce(false);
+    fireEvent.click(btn);
+    expect(onDelete).not.toHaveBeenCalled();
+
+    confirm.mockReturnValueOnce(true);
+    fireEvent.click(btn);
+    expect(onDelete).toHaveBeenCalledWith("t1");
+    confirm.mockRestore();
+  });
+
+  it("hides the delete button when onDelete is not given (guest)", () => {
+    render(<TransactionList items={[makeTxn({})]} />);
+    expect(screen.queryByRole("button", { name: /삭제/ })).toBeNull();
   });
 });

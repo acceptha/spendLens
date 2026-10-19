@@ -117,3 +117,19 @@ async def update_essential(
         user_id, transaction_id, essential_override,
     )
     return row is not None
+
+
+async def remove_transaction(
+    conn: asyncpg.Connection,
+    user_id: UUID,
+    transaction_id: UUID,
+) -> bool:
+    """Delete one transaction owned by user_id. False if not found / not owned.
+
+    하드 삭제 — 같은 명세서를 다시 올리면 dedup_hash가 비어 있으므로 다시 들어온다.
+    """
+    row = await conn.fetchrow(
+        "DELETE FROM transactions WHERE id = $2 AND user_id = $1 RETURNING id",
+        user_id, transaction_id,
+    )
+    return row is not None
