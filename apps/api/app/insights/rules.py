@@ -7,6 +7,7 @@ highlight type은 llm._ALLOWED_TYPES와 동일(top_growth / anomaly / saving_tip
 from decimal import Decimal
 
 from app.categorization.essential import ESSENTIAL_DEFAULTS
+from app.categorization.labels import category_label
 
 
 def _won(amount: object) -> str:
@@ -49,7 +50,7 @@ def build_insight(aggregates: dict) -> dict:
         top = cats[0]
         highlights.append({
             "type": "top_growth",
-            "title": f"{top['category']} 최다 지출",
+            "title": f"{category_label(top['category'])} 최다 지출",
             "detail": f"이번 달 가장 큰 카테고리 — {_won(top['amount'])} ({top['count']}건)",
         })
 
@@ -68,7 +69,7 @@ def build_insight(aggregates: dict) -> dict:
         s = non_essential[0]
         highlights.append({
             "type": "saving_tip",
-            "title": f"절약 포인트: {s['category']}",
+            "title": f"절약 포인트: {category_label(s['category'])}",
             "detail": f"비필수 지출 중 가장 큼 — {_won(s['amount'])}. 줄이면 저축 여력이 늘어요.",
         })
 

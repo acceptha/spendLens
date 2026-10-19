@@ -75,7 +75,7 @@ describe("FilterBar", () => {
       />,
     );
     fireEvent.click(screen.getByText(/카테고리 \(1\)/));
-    const checkbox = screen.getByLabelText("lunch");
+    const checkbox = screen.getByLabelText("점심");
     fireEvent.click(checkbox);
     expect(setCategories).toHaveBeenCalledWith(["coffee", "lunch"]);
   });

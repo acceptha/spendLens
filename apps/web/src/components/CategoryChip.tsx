@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { patchCategory } from "../lib/api";
+import { categoryLabel } from "../lib/categories";
 
 export const CATEGORIES = [
   "coffee", "lunch", "dinner", "snack_late",
@@ -56,9 +57,9 @@ export function CategoryChip({ transactionId, effective, isOverridden, onChange 
         onClick={() => setOpen((v) => !v)}
         disabled={saving}
         className={`${bg} text-white text-xs px-2 py-0.5 rounded disabled:opacity-50`}
-        aria-label={`카테고리: ${effective}`}
+        aria-label={`카테고리: ${categoryLabel(effective)}`}
       >
-        {effective}{dot} ▾
+        {categoryLabel(effective)}{dot} ▾
       </button>
       {open && (
         <div className="absolute top-full left-0 mt-1 bg-zinc-900 border border-zinc-700 rounded shadow-lg z-10 max-h-60 overflow-y-auto">
@@ -70,7 +71,7 @@ export function CategoryChip({ transactionId, effective, isOverridden, onChange 
                 c === effective ? "text-blue-400" : "text-zinc-200"
               }`}
             >
-              {c === effective ? "✓ " : "  "}{c}
+              {c === effective ? "✓ " : "  "}{categoryLabel(c)}
             </button>
           ))}
         </div>

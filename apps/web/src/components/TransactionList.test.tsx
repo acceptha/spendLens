@@ -28,7 +28,7 @@ describe("TransactionList", () => {
     render(<TransactionList items={items} />);
     expect(screen.getByText(/스타벅스/)).toBeInTheDocument();
     expect(screen.getByText(/9,500원/)).toBeInTheDocument();
-    expect(screen.getByText(/\[coffee\]/)).toBeInTheDocument();  // no onCategoryChange → 텍스트 칩
+    expect(screen.getByText(/\[커피\]/)).toBeInTheDocument();  // no onCategoryChange → 텍스트 칩
   });
 
   it("shows Canceled badge", () => {

@@ -4,8 +4,10 @@ import { MemoryRouter } from "react-router-dom";
 import { renderWithClient } from "../test/renderWithClient";
 import { useAuth } from "../stores/auth";
 import { CATEGORIES } from "../components/CategoryChip";
+import { categoryLabel } from "../lib/categories";
 
 const FIRST_CATEGORY = CATEGORIES[0]; // "coffee"
+const FIRST_CATEGORY_LABEL = categoryLabel(FIRST_CATEGORY); // "커피"
 
 const { fetchTransactionsMock } = vi.hoisted(() => ({ fetchTransactionsMock: vi.fn() }));
 vi.mock("../lib/api", () => ({
@@ -52,7 +54,7 @@ describe("AppPage", () => {
 
     // open the category dropdown and toggle one category
     fireEvent.click(screen.getByText(/카테고리 \(/));
-    fireEvent.click(screen.getByLabelText(FIRST_CATEGORY));
+    fireEvent.click(screen.getByLabelText(FIRST_CATEGORY_LABEL));
 
     // immediate (no 300ms wait) — a new fetch with the category should fire quickly
     await waitFor(
@@ -110,7 +112,7 @@ describe("AppPage", () => {
     fetchTransactionsMock.mockReturnValueOnce(new Promise((res) => { resolveSecond = res; }));
 
     fireEvent.click(screen.getByText(/카테고리 \(/));
-    fireEvent.click(screen.getByLabelText(FIRST_CATEGORY));
+    fireEvent.click(screen.getByLabelText(FIRST_CATEGORY_LABEL));
 
     // while the new fetch is pending, the OLD row must still be in the DOM (keepPreviousData)
     await waitFor(() => expect(fetchTransactionsMock.mock.calls.length).toBeGreaterThan(1));

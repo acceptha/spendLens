@@ -18,7 +18,7 @@ describe("CategoryChip", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: /coffee/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /커피/ })).toBeInTheDocument();
   });
 
   it("shows override dot when overridden", () => {
@@ -30,7 +30,7 @@ describe("CategoryChip", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: /groceries/ }).textContent).toContain("•");
+    expect(screen.getByRole("button", { name: /장보기/ }).textContent).toContain("•");
   });
 
   it("opens dropdown on click and calls patch on selection", async () => {
@@ -45,8 +45,8 @@ describe("CategoryChip", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /unknown/ }));
-    const groceriesOption = screen.getByRole("button", { name: /groceries/ });
+    fireEvent.click(screen.getByRole("button", { name: /미분류/ }));
+    const groceriesOption = screen.getByRole("button", { name: /장보기/ });
     fireEvent.click(groceriesOption);
 
     expect(onChange).toHaveBeenCalledWith("groceries");
@@ -65,8 +65,8 @@ describe("CategoryChip", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /unknown/ }));
-    fireEvent.click(screen.getByRole("button", { name: /groceries/ }));
+    fireEvent.click(screen.getByRole("button", { name: /미분류/ }));
+    fireEvent.click(screen.getByRole("button", { name: /장보기/ }));
 
     await waitFor(() => {
       expect(onChange).toHaveBeenNthCalledWith(1, "groceries");
