@@ -58,4 +58,6 @@ jobs:
             export GHCR_USER=${{ github.repository_owner }}
             docker compose -f docker-compose.prod.yml pull api
             docker compose -f docker-compose.prod.yml up -d
+            # Caddyfile은 파일 bind mount라 scp로 교체되면 재시작해야 새 설정을 읽는다
+            docker compose -f docker-compose.prod.yml restart caddy
             docker image prune -f
