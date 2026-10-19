@@ -1,0 +1,33 @@
+name: Uptime
+
+# 운영 웹·API 생존 확인. 실패하면 Actions가 저장소 소유자에게 메일을 보낸다.
+# (2026-10 도메인 만료로 사이트가 다운된 걸 늦게 알았던 문제 재발 방지)
+on:
+  schedule:
+    - cron: "17 */3 * * *"   # 3시간마다
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      WEB: https://spend-lens-web-suim9770-5820s-projects.vercel.app
+      API_DIRECT: https://api-3-38-103-25.sslip.io
+    steps:
+      - name: Web serves the app shell
+        run: curl -fsS --retry 3 --retry-delay 10 "$WEB/" | grep -q '<title>spendLens'
+      - name: API healthz via web proxy (/api)
+        run: curl -fsS --retry 3 --retry-delay 10 "$WEB/api/healthz" | grep -q '"ok"'
+      - name: API healthz direct (TLS cert valid)
+        run: curl -fsS --retry 3 --retry-delay 10 "$API_DIRECT/healthz" | grep -q '"ok"'
+      - name: TLS cert has more than 14 days left
+        run: |
+          end=$(echo | openssl s_client -connect api-3-38-103-25.sslip.io:443 \
+                -servername api-3-38-103-25.sslip.io 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
+          left=$(( ( $(date -d "$end" +%s) - $(date +%s) ) / 86400 ))
+          echo "cert expires $end ($left days)"
+          [ "$left" -gt 14 ]
