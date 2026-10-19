@@ -11,7 +11,8 @@ from app.categorization.labels import category_label
 
 
 def _won(amount: object) -> str:
-    return f"₩{int(Decimal(str(amount))):,}"
+    n = int(Decimal(str(amount)))
+    return f"{'-' if n < 0 else ''}₩{abs(n):,}"
 
 
 def _dec(amount: object) -> Decimal:

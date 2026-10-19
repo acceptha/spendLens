@@ -77,3 +77,8 @@ def test_unknown_category_label_is_korean():
     titles = " ".join(h["title"] for h in out["highlights"])
     assert "미분류" in titles
     assert "unknown" not in titles
+
+
+def test_negative_amount_formats_sign_before_won():
+    out = build_insight(_aggs())
+    assert "순저축 -₩128,500" in out["summary"]
