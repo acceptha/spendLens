@@ -1,3 +1,11 @@
+{
+    # Vercel 프록시 뒤의 실제 클라이언트 IP(X-Forwarded-For)를 API로 전달 — rate limit이 IP별로 동작하게.
+    # api 포트는 외부에 노출되지 않으므로 uvicorn은 Caddy가 넘긴 XFF를 신뢰한다(Dockerfile).
+    servers {
+        trusted_proxies static 0.0.0.0/0 ::/0
+    }
+}
+
 (api_common) {
     encode gzip zstd
     log {
