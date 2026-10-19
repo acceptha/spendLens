@@ -17,8 +17,15 @@ export function LoginPage() {
       const resp = await api.post("/auth/login", { email, password: pwd });
       setAccess(resp.data.access_token);
       nav("/app");
-    } catch {
-      setErr("이메일 또는 비번 불일치");
+    } catch (e) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      setErr(
+        status === 401
+          ? "이메일 또는 비번 불일치"
+          : status === 429
+            ? "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요."
+            : "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.",
+      );
     }
   }
 
