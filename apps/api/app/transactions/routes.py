@@ -8,6 +8,7 @@ from app.categorization.essential import ESSENTIAL_CATEGORIES
 from app.categorization.service import classify as classify_category
 from app.db import acquire
 from app.parsers import ParseError, detect
+from app.parsers.xls import is_xls, xls_to_xlsx
 from app.transactions.schemas import (
     EssentialPatchRequest,
     TransactionOut,
@@ -25,7 +26,7 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
 _MAX_FILE_BYTES = 10 * 1024 * 1024  # 10MB
-_ALLOWED_EXT = ".xlsx"
+_ALLOWED_EXTS = (".xlsx", ".xls")
 _ALLOWED_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 _MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 
@@ -35,9 +36,10 @@ async def upload(
     file: UploadFile = File(...),  # noqa: B008
     user_id: UUID = Depends(current_user_id),  # noqa: B008
 ) -> UploadResponse:
-    if not file.filename or not file.filename.lower().endswith(_ALLOWED_EXT):
+    if not file.filename or not file.filename.lower().endswith(_ALLOWED_EXTS):
         raise HTTPException(
-            status_code=400, detail={"error": "INVALID_FILE_TYPE", "expected": _ALLOWED_EXT}
+            status_code=400,
+            detail={"error": "INVALID_FILE_TYPE", "expected": ", ".join(_ALLOWED_EXTS)},
         )
     if file.content_type and file.content_type != _ALLOWED_MIME:
         # MIME 미스매치는 경고만 (브라우저별 다름) — 확장자 통과면 진행
@@ -48,6 +50,9 @@ async def upload(
         raise HTTPException(status_code=400, detail={"error": "FILE_TOO_LARGE"})
 
     try:
+        if is_xls(file_bytes):
+            # 레거시 .xls는 메모리에서 .xlsx로 변환해 기존 파서를 그대로 쓴다.
+            file_bytes = xls_to_xlsx(file_bytes)
         source_type, parser = detect(file_bytes)
         result = parser(file_bytes)
     except ParseError as e:

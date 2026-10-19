@@ -67,3 +67,28 @@ async def test_upload_idempotent_on_second_run(auth_headers):
         second = await client.post("/transactions/upload", headers=headers, files=files2)
         assert second.json()["uploaded"] == 0
         assert second.json()["skipped"] >= 6
+
+
+@pytest.mark.asyncio
+async def test_upload_xls_then_xlsx_dedups(auth_headers):
+    from tests.parsers.test_xls import xlsx_to_xls
+
+    headers, app = auth_headers
+    data = FIXTURE.read_bytes()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="https://test") as client:
+        up = await client.post(
+            "/transactions/upload", headers=headers,
+            files={"file": ("statement.xls", xlsx_to_xls(data), "application/vnd.ms-excel")},
+        )
+        assert up.status_code == 200, up.text
+        assert up.json()["uploaded"] >= 6
+
+        # 같은 명세서를 .xlsx로 다시 올리면 전부 중복으로 스킵된다(dedup 해시 동일).
+        again = await client.post(
+            "/transactions/upload", headers=headers,
+            files={"file": ("statement.xlsx", data,
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        )
+        assert again.json()["uploaded"] == 0
+        assert again.json()["skipped"] == up.json()["uploaded"]

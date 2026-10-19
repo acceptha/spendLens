@@ -16,11 +16,11 @@ export function UploadDropzone({ onFile }: { onFile: (f: File) => void }) {
       <input
         ref={ref}
         type="file"
-        accept=".xlsx"
+        accept=".xlsx,.xls"
         className="hidden"
         onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
       />
-      <p className="text-zinc-400">.xlsx 파일을 드래그하거나 클릭해서 업로드</p>
+      <p className="text-zinc-400">명세서 엑셀(.xlsx · .xls)을 드래그하거나 클릭해서 업로드</p>
     </div>
   );
 }
