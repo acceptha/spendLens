@@ -54,6 +54,7 @@
 - 파서는 `ParseError(code, **details)` 커스텀 예외 → 라우터에서 `HTTPException` 변환.
 
 ### 3.3 카테고리 자동 분류
+- **수정 학습**: 사용자가 직접 고친 카테고리는 같은 정규화 가맹점(브랜드)의 다음 업로드에 자동 분류로 적용(가장 최근 수정 우선, 사용자별). 룰북/LLM보다 먼저 — `categorization/service.learned_categories`.
 - **2단계**: 룰북(가맹점명 규칙) 우선 → 미매칭만 **Claude Haiku LLM** 분류.
 - 카테고리 19종(housing, utilities, telecom, groceries, health, insurance, transport, lunch, dinner, savings, income, transfer, coffee, snack_late, subscription, entertainment, shopping, etc, unknown).
 - **월간 LLM 예산 가드** — Redis 버킷에 비용 누적, 한도 초과 시 LLM 호출 차단(분류·인사이트 공유).

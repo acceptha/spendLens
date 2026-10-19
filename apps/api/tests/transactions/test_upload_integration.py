@@ -92,3 +92,67 @@ async def test_upload_xls_then_xlsx_dedups(auth_headers):
         )
         assert again.json()["uploaded"] == 0
         assert again.json()["skipped"] == up.json()["uploaded"]
+
+
+async def _seed_override(test_db_pool, email, merchant_raw, override, *, d="2026-01-01"):
+    import datetime
+    from uuid import uuid4
+
+    from app.categorization.merchant import normalize_merchant
+
+    async with test_db_pool.acquire() as conn:
+        uid = await conn.fetchval("SELECT id FROM users WHERE email = $1", email)
+        await conn.execute(
+            "INSERT INTO transactions (user_id, source_type, txn_date, amount, merchant_raw, "
+            "merchant_normalized, category, user_category_override, dedup_hash, raw_row) "
+            "VALUES ($1,'test',$2,1000,$3,$4,'coffee',$5,$6,'{}'::jsonb)",
+            uid, datetime.date.fromisoformat(d), merchant_raw,
+            normalize_merchant(merchant_raw), override, str(uuid4()),
+        )
+
+
+@pytest.mark.asyncio
+async def test_upload_learns_category_from_users_past_override(auth_headers, test_db_pool):
+    headers, app = auth_headers
+    # 다른 지점이라도 같은 브랜드(정규화)면 학습 적용, 가장 최근 수정이 우선.
+    await _seed_override(test_db_pool, settings.admin_email, "스타벅스 역삼점", "dinner",
+                         d="2026-01-01")
+    await _seed_override(test_db_pool, settings.admin_email, "스타벅스 선릉점", "snack_late",
+                         d="2026-02-01")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="https://test") as client:
+        up = await client.post(
+            "/transactions/upload", headers=headers,
+            files={"file": ("s.xlsx", FIXTURE.read_bytes(),
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        )
+        assert up.status_code == 200, up.text
+        rows = (await client.get("/transactions?limit=200", headers=headers)).json()
+
+    uploaded = [t for t in rows if t["merchant_raw"] == "스타벅스 강남대로점"]
+    assert uploaded, "fixture should contain 스타벅스 강남대로점"
+    assert uploaded[0]["auto_category"] == "snack_late"
+    assert uploaded[0]["user_category_override"] is None  # 학습은 자동 분류로 들어간다
+
+
+@pytest.mark.asyncio
+async def test_upload_ignores_other_users_overrides(auth_headers, test_db_pool):
+    headers, app = auth_headers
+    async with test_db_pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO users (email, password_hash) VALUES ('_other@example.com', 'x')"
+        )
+    await _seed_override(test_db_pool, "_other@example.com", "스타벅스 역삼점", "dinner")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="https://test") as client:
+        await client.post(
+            "/transactions/upload", headers=headers,
+            files={"file": ("s.xlsx", FIXTURE.read_bytes(),
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        )
+        rows = (await client.get("/transactions?limit=200", headers=headers)).json()
+
+    starbucks = [t for t in rows if t["merchant_raw"] == "스타벅스 강남대로점"]
+    assert starbucks[0]["auto_category"] == "coffee"

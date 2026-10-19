@@ -4,6 +4,9 @@
 LLM 호출/파싱 실패 시 silent fallback to "unknown" (업로드 흐름 안 끊김).
 """
 import logging
+from uuid import UUID
+
+import asyncpg
 
 from app.categorization import budget, cache, llm, rulebook
 
@@ -41,3 +44,23 @@ async def classify(merchant_raw: str) -> str:
         merchant=cache.normalize_merchant(merchant_raw),
     )
     return cat
+
+
+async def learned_categories(conn: asyncpg.Connection, user_id: UUID) -> dict[str, str]:
+    """사용자가 직접 고친 카테고리를 정규화 가맹점별로 모은다 (가장 최근 거래의 수정 우선).
+
+    업로드 시 같은 가맹점(브랜드)은 룰북/LLM보다 이 값을 먼저 써서, 한 번 고친 분류가
+    다음 달 명세서에도 이어지게 한다.
+    """
+    rows = await conn.fetch(
+        """
+        SELECT DISTINCT ON (merchant_normalized) merchant_normalized, user_category_override
+        FROM transactions
+        WHERE user_id = $1
+          AND user_category_override IS NOT NULL
+          AND merchant_normalized IS NOT NULL AND merchant_normalized <> ''
+        ORDER BY merchant_normalized, txn_date DESC, created_at DESC
+        """,
+        user_id,
+    )
+    return {r["merchant_normalized"]: r["user_category_override"] for r in rows}
