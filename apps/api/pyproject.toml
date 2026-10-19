@@ -19,6 +19,7 @@ dependencies = [
     "email-validator>=2.0",
     "redis>=5.0",
     "anthropic>=0.40",
+    "xlrd>=2.0.2",
 ]
 
 [dependency-groups]
@@ -29,6 +30,7 @@ dev = [
     "httpx>=0.27.0",
     "ruff>=0.6.0",
     "mypy>=1.11.0",
+    "xlwt>=1.3.0",
 ]
 
 [tool.ruff]
