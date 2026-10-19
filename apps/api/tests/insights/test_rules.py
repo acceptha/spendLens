@@ -42,14 +42,14 @@ def test_build_insight_shape_and_allowed_types():
 def test_top_growth_is_largest_category():
     out = build_insight(_aggs())
     tg = next(h for h in out["highlights"] if h["type"] == "top_growth")
-    assert "groceries" in tg["title"]
+    assert "장보기" in tg["title"]
 
 
 def test_saving_tip_is_largest_non_essential_category():
     # groceries(최대)는 필수 → saving_tip은 비필수 중 최대인 entertainment여야 함
     out = build_insight(_aggs())
     st = next(h for h in out["highlights"] if h["type"] == "saving_tip")
-    assert "entertainment" in st["title"]
+    assert "여가" in st["title"]
 
 
 def test_anomaly_is_top_merchant():
@@ -70,3 +70,10 @@ def test_empty_month_yields_no_highlights():
     )
     assert out["highlights"] == []
     assert "없습니다" in out["summary"]
+
+
+def test_unknown_category_label_is_korean():
+    out = build_insight(_aggs(by_category=[{"category": "unknown", "amount": 8000, "count": 1}]))
+    titles = " ".join(h["title"] for h in out["highlights"])
+    assert "미분류" in titles
+    assert "unknown" not in titles

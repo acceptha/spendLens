@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchMonths } from "../lib/api";
 import { CATEGORIES } from "./CategoryChip";
+import { categoryLabel } from "../lib/categories";
 
 type Props = {
   month: string | null;
@@ -76,9 +77,9 @@ export function FilterBar({ month, setMonth, categories, setCategories, search, 
                 checked={categories.includes(c)}
                 onChange={() => toggleCategory(c)}
                 className="mr-2"
-                aria-label={c}
+                aria-label={categoryLabel(c)}
               />
-              {c}
+              {categoryLabel(c)}
             </label>
           ))}
         </div>

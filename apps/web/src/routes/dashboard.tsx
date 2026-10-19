@@ -5,6 +5,7 @@ import { InsightCard } from "../components/InsightCard";
 import { MetricStrip } from "../components/MetricStrip";
 import { CashflowChart } from "../components/CashflowChart";
 import { EssentialDonut } from "../components/EssentialDonut";
+import { categoryKey, categoryLabel } from "../lib/categories";
 import {
   useMonths, useSummary, useByCategory, useCashflow, useTopMerchants, useByEssential,
 } from "../lib/queries";
@@ -71,12 +72,12 @@ export function DashboardPage() {
               <Title>카테고리별 지출</Title>
               <p className="text-xs text-zinc-500 mt-1">카테고리를 클릭하면 해당 거래로 이동합니다.</p>
               <DonutChart
-                data={byCategory.map((c) => ({ name: c.category, value: Number(c.amount) }))}
+                data={byCategory.map((c) => ({ name: categoryLabel(c.category), value: Number(c.amount) }))}
                 category="value" index="name"
                 valueFormatter={(v) => `₩${v.toLocaleString()}`}
                 colors={["cyan","amber","rose","lime","violet","orange","blue","fuchsia","emerald","indigo","yellow","pink","teal","sky","purple","green","red","slate","gray"]}
                 onValueChange={(v) => {
-                  if (v?.name) nav(`/app?category=${encodeURIComponent(v.name)}`);
+                  if (v?.name) nav(`/app?category=${encodeURIComponent(categoryKey(String(v.name)))}`);
                 }}
               />
             </Card>

@@ -1,6 +1,7 @@
 import type { TransactionRow } from "../lib/api";
 import { CategoryChip } from "./CategoryChip";
 import { EssentialToggle } from "./EssentialToggle";
+import { categoryLabel } from "../lib/categories";
 
 // W3: TransactionRow는 lib/api.ts의 단일 타입 — 여기선 re-export로 backward-compat
 export type Txn = TransactionRow;
@@ -32,7 +33,7 @@ export function TransactionList({ items, onCategoryChange, onEssentialChange }: 
                 onChange={(newCat) => onCategoryChange(t.id, newCat)}
               />
             ) : (
-              <span>[{t.effective_category ?? t.category}]</span>
+              <span>[{categoryLabel(t.effective_category ?? t.category)}]</span>
             )}
             {t.card_last4 && <span>· ****-{t.card_last4}</span>}
             {onEssentialChange && (
