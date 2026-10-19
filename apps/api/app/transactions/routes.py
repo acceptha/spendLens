@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.auth.deps import current_user_id
 from app.categorization.essential import ESSENTIAL_CATEGORIES
+from app.categorization.merchant import normalize_merchant
 from app.categorization.service import classify as classify_category
+from app.categorization.service import learned_categories
 from app.db import acquire
 from app.parsers import ParseError, detect
 from app.parsers.xls import is_xls, xls_to_xlsx
@@ -58,8 +60,12 @@ async def upload(
     except ParseError as e:
         raise HTTPException(status_code=400, detail={"error": e.code, **e.details}) from e
 
+    async with acquire() as conn:
+        learned = await learned_categories(conn, user_id)
     for tx in result.transactions:
-        tx.category = await classify_category(tx.merchant_raw)
+        tx.category = learned.get(normalize_merchant(tx.merchant_raw)) or await classify_category(
+            tx.merchant_raw
+        )
 
     source_file_id = uuid4()
     async with acquire() as conn:
