@@ -18,12 +18,12 @@ export function TransactionList({ items, onCategoryChange, onEssentialChange, on
     <ul className="space-y-2" data-testid="txn-list">
       {items.map((t) => (
         <li key={t.id} className="border border-zinc-800 rounded p-3">
-          <div className="flex justify-between items-center">
-            <span>
+          <div className="flex justify-between items-start gap-3">
+            <span className="min-w-0 break-words">
               {t.txn_date} · {t.merchant_raw}
               {t.is_canceled && <span className="ml-2 text-red-400 text-xs">[Canceled]</span>}
             </span>
-            <span className="font-mono">{Number(t.amount).toLocaleString()}원</span>
+            <span className="font-mono whitespace-nowrap shrink-0">{Number(t.amount).toLocaleString()}원</span>
           </div>
           <div className="text-xs text-zinc-500 mt-1 flex items-center gap-2">
             {onCategoryChange ? (

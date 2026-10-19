@@ -11,7 +11,7 @@ export function Nav() {
   if (!isAuthed) return null;
 
   const linkCls = (path: string) =>
-    `px-3 py-1 rounded whitespace-nowrap shrink-0 ${
+    `px-2 sm:px-3 py-1 rounded whitespace-nowrap shrink-0 ${
       loc.pathname === path
         ? "bg-zinc-800 text-white"
         : "text-zinc-400 hover:text-white"
@@ -28,8 +28,8 @@ export function Nav() {
   }
 
   return (
-    <nav className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 bg-zinc-950">
-      <span className="font-bold text-white mr-4 shrink-0 whitespace-nowrap">spendLens</span>
+    <nav className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-3 border-b border-zinc-800 bg-zinc-950">
+      <span className="font-bold text-white mr-1 sm:mr-4 shrink-0 whitespace-nowrap">spendLens</span>
       <Link to="/app" className={linkCls("/app")}>거래내역</Link>
       <Link to="/dashboard" className={linkCls("/dashboard")}>대시보드</Link>
       <div className="flex-1" />
