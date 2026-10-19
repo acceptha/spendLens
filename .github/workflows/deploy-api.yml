@@ -61,3 +61,6 @@ jobs:
             # Caddyfile은 파일 bind mount라 scp로 교체되면 재시작해야 새 설정을 읽는다
             docker compose -f docker-compose.prod.yml restart caddy
             docker image prune -f
+            # 배포 로그에 서비스 상태와 최근 백업을 남긴다 (서버 SSH 없이 확인용)
+            docker compose -f docker-compose.prod.yml ps --format "{{.Service}} {{.Status}}"
+            docker compose -f docker-compose.prod.yml exec -T backup sh -c 'ls -lh /backups | tail -3' || true

@@ -37,7 +37,7 @@ POSTGRES_PASSWORD=<강력한 랜덤 32자 이상>
 ADMIN_EMAIL=<your email>
 ADMIN_PASSWORD_HASH=<scripts/hash_password.py 실행 결과>
 JWT_SECRET=<openssl rand -hex 32>
-WEB_ORIGIN=https://spendlens.suim-app.store
+WEB_ORIGIN=https://spendlens.suim-app.store   # 현재 웹은 같은 출처 /api 프록시라 CORS 미사용
 GHCR_USER=<github username/org>
 ```
 5. `docker login ghcr.io` (use GHCR_TOKEN PAT)
@@ -54,8 +54,18 @@ docker compose -f docker-compose.prod.yml up -d
 - main push → GitHub Actions: build, push GHCR, ssh `docker compose pull && up -d`
 
 ### Backup
-- Postgres data는 `postgres_data` named volume에 있음. 백업: `docker compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres spendlens > backup.sql`
-- Lightsail 인스턴스 스냅샷도 추천 (월 1회)
+- **자동 백업**: `backup` 서비스가 기동 시 1회 + 이후 24시간마다 `pg_dump | gzip` → named volume `postgres_backups`(`/backups/spendlens-<UTC시각>.sql.gz`), 14일 지난 파일 자동 삭제. 배포 로그(Deploy API → SSH deploy 단계)에 최근 백업 3개가 찍힌다.
+- 목록: `docker compose -f docker-compose.prod.yml exec backup ls -lh /backups`
+- 수동 백업: `docker compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres spendlens > backup.sql`
+- **복구** (api 중지 후):
+  ```bash
+  cd /opt/spendlens
+  docker compose -f docker-compose.prod.yml stop api
+  docker compose -f docker-compose.prod.yml exec -T postgres psql -U postgres -c "DROP DATABASE spendlens WITH (FORCE)" -c "CREATE DATABASE spendlens"
+  docker compose -f docker-compose.prod.yml exec -T backup sh -c 'gunzip -c /backups/<파일>.sql.gz'     | docker compose -f docker-compose.prod.yml exec -T postgres psql -U postgres -d spendlens
+  docker compose -f docker-compose.prod.yml start api
+  ```
+- 같은 디스크에 있으므로 인스턴스 장애 대비로 Lightsail 스냅샷(월 1회)도 권장.
 
 ### Troubleshooting
 - API 로그: `docker compose -f /opt/spendlens/docker-compose.prod.yml logs -f api`
