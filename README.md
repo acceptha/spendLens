@@ -8,12 +8,14 @@
 > 전체 기능 · 아키텍처 · API 레퍼런스는 **[`docs/FEATURES.md`](docs/FEATURES.md)** 참고.
 
 Live:
-- **Web:** https://spendlens.suim-app.store
-- **Signup:** https://spendlens.suim-app.store/signup
-- **App (login required):** https://spendlens.suim-app.store/app
-- **Dashboard (login required):** https://spendlens.suim-app.store/dashboard
-- **Guest demo:** https://spendlens.suim-app.store/guest
-- **API healthz:** https://api.spendlens.suim-app.store/healthz
+> `suim-app.store` 도메인 만료(2026-10)로 임시 주소 운영 중. 웹은 Vercel 기본 주소, API는 웹의 `/api/*` 프록시(→ `api-3-38-103-25.sslip.io`)로 접근.
+
+- **Web:** https://spend-lens-web-suim9770-5820s-projects.vercel.app
+- **Signup:** https://spend-lens-web-suim9770-5820s-projects.vercel.app/signup
+- **App (login required):** https://spend-lens-web-suim9770-5820s-projects.vercel.app/app
+- **Dashboard (login required):** https://spend-lens-web-suim9770-5820s-projects.vercel.app/dashboard
+- **Guest demo:** https://spend-lens-web-suim9770-5820s-projects.vercel.app/guest
+- **API healthz:** https://spend-lens-web-suim9770-5820s-projects.vercel.app/api/healthz
 
 ## Tech Stack
 - Frontend: React + Vite + TypeScript + Tailwind + Zustand + **TanStack Query** (서버 상태) + **Tremor** (대시보드 차트)
