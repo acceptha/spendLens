@@ -14,7 +14,7 @@
 | 핵심 흐름 | 회원가입 → 카드/은행 명세서(XLSX) 업로드 → 자동 파싱·분류 → 거래 조회/수정 → 대시보드 분석 → 월간 LLM 인사이트 |
 | 사용자 모드 | 본인 모드(로그인) + 게스트 데모(`/guest`, 로그인 없이 시드 데이터 열람) |
 | 호스팅 | 웹=Vercel, API=AWS Lightsail(Docker Compose + Caddy + Let's Encrypt), DB=PostgreSQL, 캐시/예산=Redis |
-| 도메인 | `spendlens.suim-app.store`(웹) · `api.spendlens.suim-app.store`(API) |
+| 도메인 | 임시: `spend-lens-web-suim9770-5820s-projects.vercel.app`(웹) · 웹 `/api/*` → Vercel rewrite → `api-3-38-103-25.sslip.io`(API). 원 도메인 `suim-app.store`는 2026-10 만료 — 재등록 시 `apps/web/vercel.json` rewrite 목적지만 되돌리면 됨 |
 
 ---
 
@@ -83,7 +83,7 @@
 
 ## 4. API 레퍼런스
 
-베이스: `https://api.spendlens.suim-app.store` · 인증 헤더: `Authorization: Bearer <access_token>` (게스트/인증 제외 모든 경로).
+베이스: 웹 같은 출처 `/api` (Vercel rewrite → `https://api-3-38-103-25.sslip.io`) · 인증 헤더: `Authorization: Bearer <access_token>` (게스트/인증 제외 모든 경로).
 
 | 메서드 | 경로 | 설명 | 인증 |
 |---|---|---|---|
