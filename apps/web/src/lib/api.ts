@@ -1,7 +1,11 @@
 import axios, { AxiosError } from "axios";
 import { useAuth } from "../stores/auth";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+// 운영: 같은 출처 /api → Vercel rewrite가 API로 프록시 (vercel.json). CORS·교차 사이트 쿠키 문제 없음.
+// 개발: VITE_API_BASE 또는 로컬 API 직접 호출.
+const API_BASE = import.meta.env.PROD
+  ? "/api"
+  : (import.meta.env.VITE_API_BASE ?? "http://localhost:8000");
 
 export const api = axios.create({
   baseURL: API_BASE,
