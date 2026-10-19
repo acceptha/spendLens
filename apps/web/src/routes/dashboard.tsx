@@ -48,7 +48,7 @@ export function DashboardPage() {
   const byEssential = byEssentialQ.data ?? [];
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 sm:p-6 space-y-4">
       {isError && (
         <div role="alert" className="bg-red-900/30 border border-red-700 text-red-200 text-sm rounded p-3">
           대시보드 데이터를 불러오는 중 오류가 발생했습니다.

@@ -61,7 +61,7 @@ export function AppPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-3xl mx-auto p-8">
+      <div className="max-w-3xl mx-auto p-4 sm:p-8">
         <h2 className="text-2xl mb-4">My Transactions</h2>
         <UploadDropzone onFile={(file) => upload.mutate(file)} />
         {msg && <p className="my-4 text-sm text-zinc-400">{msg}</p>}
@@ -74,7 +74,7 @@ export function AppPage() {
         search={search}
         setSearch={setSearch}
       />
-      <div className="max-w-3xl mx-auto p-8">
+      <div className="max-w-3xl mx-auto p-4 sm:p-8">
         {txnsQuery.isError && (
           <div role="alert" className="mb-4 bg-red-900/30 border border-red-700 text-red-200 text-sm rounded p-3">
             거래를 불러오는 중 오류가 발생했습니다.
