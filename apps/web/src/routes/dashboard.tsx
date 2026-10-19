@@ -6,6 +6,7 @@ import { MetricStrip } from "../components/MetricStrip";
 import { CashflowChart } from "../components/CashflowChart";
 import { EssentialDonut } from "../components/EssentialDonut";
 import { categoryKey, categoryLabel } from "../lib/categories";
+import { formatWon } from "../lib/format";
 import {
   useMonths, useSummary, useByCategory, useCashflow, useTopMerchants, useByEssential,
 } from "../lib/queries";
@@ -74,7 +75,7 @@ export function DashboardPage() {
               <DonutChart
                 data={byCategory.map((c) => ({ name: categoryLabel(c.category), value: Number(c.amount) }))}
                 category="value" index="name"
-                valueFormatter={(v) => `₩${v.toLocaleString()}`}
+                valueFormatter={formatWon}
                 colors={["cyan","amber","rose","lime","violet","orange","blue","fuchsia","emerald","indigo","yellow","pink","teal","sky","purple","green","red","slate","gray"]}
                 onValueChange={(v) => {
                   if (v?.name) nav(`/app?category=${encodeURIComponent(categoryKey(String(v.name)))}`);

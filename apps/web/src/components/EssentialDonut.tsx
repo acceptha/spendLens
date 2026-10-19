@@ -1,4 +1,5 @@
 import { Card, Title, DonutChart } from "@tremor/react";
+import { formatWon } from "../lib/format";
 import type { EssentialBucket } from "../lib/api";
 
 export function EssentialDonut({ data }: { data: EssentialBucket[] }) {
@@ -8,7 +9,7 @@ export function EssentialDonut({ data }: { data: EssentialBucket[] }) {
       <DonutChart
         data={data.map((b) => ({ name: b.essential ? "필수" : "비필수", value: Number(b.amount) }))}
         category="value" index="name"
-        valueFormatter={(v) => `₩${v.toLocaleString()}`}
+        valueFormatter={formatWon}
         colors={["emerald", "amber"]}
       />
     </Card>

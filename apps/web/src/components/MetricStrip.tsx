@@ -1,8 +1,9 @@
 import { Card, Text, Metric } from "@tremor/react";
 import type { SummaryResponse } from "../lib/api";
+import { formatWon } from "../lib/format";
 
 function won(s: string): string {
-  return `₩${Number(s).toLocaleString()}`;
+  return formatWon(s);
 }
 
 export function MetricStrip({ summary }: { summary: SummaryResponse }) {
