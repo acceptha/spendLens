@@ -4,6 +4,7 @@ import { useAuth } from "../stores/auth";
 import { UploadDropzone } from "../components/UploadDropzone";
 import { TransactionList } from "../components/TransactionList";
 import { FilterBar } from "../components/FilterBar";
+import { SameMerchantBanner, type SameMerchantOffer } from "../components/SameMerchantBanner";
 import { useDebouncedValue } from "../lib/useDebouncedValue";
 import {
   useTransactions,
@@ -11,6 +12,7 @@ import {
   useCategoryOverride,
   useEssentialOverride,
   useDeleteTransaction,
+  useApplyToMerchant,
 } from "../lib/queries";
 
 export function AppPage() {
@@ -44,6 +46,30 @@ export function AppPage() {
   const categoryOverride = useCategoryOverride();
   const essentialOverride = useEssentialOverride();
   const deleteTxn = useDeleteTransaction();
+  const applyToMerchant = useApplyToMerchant();
+  const [offer, setOffer] = useState<SameMerchantOffer | null>(null);
+  const [appliedMsg, setAppliedMsg] = useState<string | null>(null);
+
+  function changeCategory(id: string, category: string) {
+    setAppliedMsg(null);
+    categoryOverride.mutate({ id, category }, {
+      onSuccess: (res) => {
+        setOffer(res && res.same_merchant_pending > 0 && res.merchant
+          ? { id, merchant: res.merchant, category, count: res.same_merchant_pending }
+          : null);
+      },
+    });
+  }
+
+  function applyOffer() {
+    if (!offer) return;
+    applyToMerchant.mutate(offer.id, {
+      onSuccess: (res) => {
+        setOffer(null);
+        setAppliedMsg(`${res.updated}건 변경됨`);
+      },
+    });
+  }
 
   const txns = txnsQuery.data ?? [];
 
@@ -80,14 +106,22 @@ export function AppPage() {
             거래를 불러오는 중 오류가 발생했습니다.
           </div>
         )}
+        {offer && (
+          <SameMerchantBanner
+            offer={offer}
+            pending={applyToMerchant.isPending}
+            onApply={applyOffer}
+            onDismiss={() => setOffer(null)}
+          />
+        )}
+        {appliedMsg && <p role="status" className="mb-4 text-sm text-emerald-300">{appliedMsg}</p>}
         {txnsQuery.isPending ? (
           <p className="text-zinc-400 text-sm">로딩…</p>
         ) : (
           <div className={txnsQuery.isPlaceholderData ? "opacity-60 transition-opacity" : "transition-opacity"}>
             <TransactionList
               items={txns}
-              onCategoryChange={(id, newCategory) =>
-                categoryOverride.mutate({ id, category: newCategory })}
+              onCategoryChange={changeCategory}
               onEssentialChange={(id, override) =>
                 essentialOverride.mutate({ id, essentialOverride: override })}
               onDelete={(id) => deleteTxn.mutate(id)}

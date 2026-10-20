@@ -9,14 +9,17 @@ import { categoryLabel } from "../lib/categories";
 const FIRST_CATEGORY = CATEGORIES[0]; // "coffee"
 const FIRST_CATEGORY_LABEL = categoryLabel(FIRST_CATEGORY); // "커피"
 
-const { fetchTransactionsMock } = vi.hoisted(() => ({ fetchTransactionsMock: vi.fn() }));
+const { fetchTransactionsMock, patchCategoryMock, applyMock } = vi.hoisted(() => ({
+  fetchTransactionsMock: vi.fn(), patchCategoryMock: vi.fn(), applyMock: vi.fn(),
+}));
 vi.mock("../lib/api", () => ({
   fetchTransactions: fetchTransactionsMock,
   fetchMonths: vi.fn(() => Promise.resolve([])),
   fetchSummary: vi.fn(), fetchByCategory: vi.fn(),
   fetchCashflowByMonth: vi.fn(), fetchByEssential: vi.fn(), fetchTopMerchants: vi.fn(),
   fetchInsight: vi.fn(), generateInsight: vi.fn(),
-  patchCategory: vi.fn(), patchEssential: vi.fn(), api: { post: vi.fn() },
+  patchCategory: patchCategoryMock, patchEssential: vi.fn(),
+  applyCategoryToMerchant: applyMock, api: { post: vi.fn() },
 }));
 
 import { AppPage } from "./app";
@@ -24,6 +27,8 @@ import { AppPage } from "./app";
 describe("AppPage", () => {
   beforeEach(() => {
     fetchTransactionsMock.mockReset().mockResolvedValue([]);
+    patchCategoryMock.mockReset();
+    applyMock.mockReset();
     useAuth.getState().setAccess("test-token"); // 인증 상태 → /login 리다이렉트 방지
   });
 
@@ -120,5 +125,50 @@ describe("AppPage", () => {
 
     // resolve the second fetch to avoid an unhandled pending promise
     resolveSecond([]);
+  });
+
+  describe("same-merchant bulk apply", () => {
+    const row = {
+      id: "t1", txn_date: "2026-10-01", txn_time: null, amount: "4500",
+      merchant_raw: "스타벅스 강남점", category: "unknown", auto_category: "unknown",
+      user_category_override: null, effective_category: "unknown",
+    };
+
+    async function changeToCoffee() {
+      fetchTransactionsMock.mockResolvedValue([row]);
+      renderWithClient(<MemoryRouter><AppPage /></MemoryRouter>);
+      fireEvent.click(await screen.findByRole("button", { name: /카테고리: 미분류/ }));
+      fireEvent.click(screen.getByRole("button", { name: /^\s*커피$/ }));
+    }
+
+    it("sends one PATCH and offers to apply to the same merchant", async () => {
+      patchCategoryMock.mockResolvedValue({ same_merchant_pending: 3, merchant: "스타벅스" });
+      applyMock.mockResolvedValue({ updated: 3 });
+      await changeToCoffee();
+
+      expect(await screen.findByText("같은 가맹점 '스타벅스' 거래 3건도 '커피'로 바꿀까요?"))
+        .toBeInTheDocument();
+      expect(patchCategoryMock).toHaveBeenCalledTimes(1);
+      expect(patchCategoryMock).toHaveBeenCalledWith("t1", "coffee");
+
+      fireEvent.click(screen.getByRole("button", { name: "모두 변경" }));
+      await waitFor(() => expect(applyMock).toHaveBeenCalledWith("t1"));
+      expect(await screen.findByText("3건 변경됨")).toBeInTheDocument();
+    });
+
+    it("dismiss closes the offer without applying", async () => {
+      patchCategoryMock.mockResolvedValue({ same_merchant_pending: 2, merchant: "스타벅스" });
+      await changeToCoffee();
+      fireEvent.click(await screen.findByRole("button", { name: "닫기" }));
+      expect(screen.queryByText(/같은 가맹점/)).toBeNull();
+      expect(applyMock).not.toHaveBeenCalled();
+    });
+
+    it("no offer when there is nothing else to change", async () => {
+      patchCategoryMock.mockResolvedValue({ same_merchant_pending: 0, merchant: "스타벅스" });
+      await changeToCoffee();
+      await waitFor(() => expect(patchCategoryMock).toHaveBeenCalled());
+      expect(screen.queryByText(/같은 가맹점/)).toBeNull();
+    });
   });
 });

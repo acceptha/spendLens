@@ -65,6 +65,7 @@
 - 목록: 월 필터, 카테고리 다중 필터, 가맹점 검색(300ms 디바운스), 페이지네이션.
 - 인라인 수정: 카테고리 칩 드롭다운, **필수/비필수 3-state 토글**(자동/필수/비필수).
 - 낙관적 갱신(즉시 반영 → 실패 시 롤백) + 동시 토글 경합 가드.
+- **같은 가맹점 일괄 변경**: 카테고리를 고치면 같은 브랜드의 다른 거래 N건(직접 고친 것·이미 같은 것 제외)을 "모두 변경"할지 배너로 제안. 일괄 변경도 사용자 수정으로 기록돼 업로드 학습에 이어진다.
 - **거래 삭제**: 행의 "삭제" → 확인 후 즉시 목록에서 제거(실패 시 복원), 월 목록·대시보드·인사이트 캐시 무효화.
 
 ### 3.5 대시보드 분석
@@ -104,7 +105,8 @@
 | POST | `/transactions/upload` | 명세서 XLSX 업로드 → `{uploaded, skipped}` | ✓ |
 | GET | `/transactions` | 거래 목록(month/category/search/limit/offset) | ✓ |
 | GET | `/transactions/months` | 거래 있는 월 목록(DESC) | ✓ |
-| PATCH | `/transactions/{id}` | 카테고리 오버라이드 | ✓ |
+| PATCH | `/transactions/{id}` | 카테고리 오버라이드 → `{same_merchant_pending, merchant}` | ✓ |
+| POST | `/transactions/{id}/apply-to-merchant` | 같은 정규화 가맹점의 다른 거래(직접 수정 제외)에 카테고리 일괄 적용 → `{updated}` | ✓ |
 | PATCH | `/transactions/{id}/essential` | 필수/비필수 3-state 토글 | ✓ |
 | DELETE | `/transactions/{id}` | 거래 삭제(본인 것만, 하드 삭제 — 같은 명세서 재업로드 시 다시 들어옴) | ✓ |
 | GET | `/dashboard/summary` | 요약 지표(지출/수입/순저축/저축률) | ✓ |

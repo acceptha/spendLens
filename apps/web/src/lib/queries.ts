@@ -16,6 +16,7 @@ import {
   fetchInsight,
   generateInsight,
   patchCategory,
+  applyCategoryToMerchant,
   patchEssential,
   deleteTransaction,
   fetchBudgetStatus,
@@ -204,6 +205,19 @@ export function useEssentialOverride() {
         qc.invalidateQueries({ queryKey: ["insight"] });
         qc.invalidateQueries({ queryKey: ["budget"] });
       }
+    },
+  });
+}
+
+export function useApplyToMerchant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => applyCategoryToMerchant(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["insight"] });
+      qc.invalidateQueries({ queryKey: ["budget"] });
     },
   });
 }

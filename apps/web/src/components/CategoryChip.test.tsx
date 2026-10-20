@@ -1,18 +1,13 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 
-const { patchMock } = vi.hoisted(() => ({ patchMock: vi.fn() }));
-vi.mock("../lib/api", () => ({ patchCategory: patchMock }));
 
 import { CategoryChip } from "./CategoryChip";
 
 describe("CategoryChip", () => {
-  beforeEach(() => patchMock.mockReset());
-
   it("displays effective category", () => {
     render(
       <CategoryChip
-        transactionId="t1"
         effective="coffee"
         isOverridden={false}
         onChange={() => {}}
@@ -24,7 +19,6 @@ describe("CategoryChip", () => {
   it("shows override dot when overridden", () => {
     render(
       <CategoryChip
-        transactionId="t1"
         effective="groceries"
         isOverridden={true}
         onChange={() => {}}
@@ -33,32 +27,11 @@ describe("CategoryChip", () => {
     expect(screen.getByRole("button", { name: /장보기/ }).textContent).toContain("•");
   });
 
-  it("opens dropdown on click and calls patch on selection", async () => {
-    patchMock.mockResolvedValueOnce(undefined);
+  it("selecting a category reports it exactly once", () => {
+    // 서버 요청은 useCategoryOverride(mutation) 한 곳에서만 — 칩이 직접 보내면 PATCH가 두 번 나간다.
     const onChange = vi.fn();
     render(
       <CategoryChip
-        transactionId="t1"
-        effective="unknown"
-        isOverridden={false}
-        onChange={onChange}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /미분류/ }));
-    const groceriesOption = screen.getByRole("button", { name: /장보기/ });
-    fireEvent.click(groceriesOption);
-
-    expect(onChange).toHaveBeenCalledWith("groceries");
-    await waitFor(() => expect(patchMock).toHaveBeenCalledWith("t1", "groceries"));
-  });
-
-  it("rolls back onChange on patch failure", async () => {
-    patchMock.mockRejectedValueOnce(new Error("network"));
-    const onChange = vi.fn();
-    render(
-      <CategoryChip
-        transactionId="t1"
         effective="unknown"
         isOverridden={false}
         onChange={onChange}
@@ -68,9 +41,18 @@ describe("CategoryChip", () => {
     fireEvent.click(screen.getByRole("button", { name: /미분류/ }));
     fireEvent.click(screen.getByRole("button", { name: /장보기/ }));
 
-    await waitFor(() => {
-      expect(onChange).toHaveBeenNthCalledWith(1, "groceries");
-      expect(onChange).toHaveBeenNthCalledWith(2, "unknown");
-    });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith("groceries");
+    expect(screen.queryByRole("button", { name: /^\s*쇼핑/ })).toBeNull(); // 드롭다운 닫힘
+  });
+
+  it("picking the current category does nothing", () => {
+    const onChange = vi.fn();
+    render(
+      <CategoryChip effective="unknown" isOverridden={false} onChange={onChange} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /미분류/ }));
+    fireEvent.click(screen.getByRole("button", { name: /✓.*미분류/ }));
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

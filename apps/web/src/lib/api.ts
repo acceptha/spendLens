@@ -107,8 +107,17 @@ export async function fetchMonths(): Promise<string[]> {
   return data;
 }
 
-export async function patchCategory(id: string, category: string): Promise<void> {
-  await api.patch(`/transactions/${id}`, { category });
+export type CategoryPatchResult = { same_merchant_pending: number; merchant: string | null };
+
+export async function patchCategory(id: string, category: string): Promise<CategoryPatchResult> {
+  const { data } = await api.patch<CategoryPatchResult>(`/transactions/${id}`, { category });
+  return data;
+}
+
+/** 이 거래의 카테고리를 같은 가맹점의 다른 거래(직접 수정한 것 제외)에 일괄 적용. */
+export async function applyCategoryToMerchant(id: string): Promise<{ updated: number }> {
+  const { data } = await api.post<{ updated: number }>(`/transactions/${id}/apply-to-merchant`);
+  return data;
 }
 
 export async function deleteTransaction(id: string): Promise<void> {

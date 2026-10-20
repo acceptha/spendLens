@@ -28,7 +28,6 @@ export function TransactionList({ items, onCategoryChange, onEssentialChange, on
           <div className="text-xs text-zinc-500 mt-1 flex items-center gap-2">
             {onCategoryChange ? (
               <CategoryChip
-                transactionId={t.id}
                 effective={t.effective_category}
                 isOverridden={t.user_category_override !== null}
                 onChange={(newCat) => onCategoryChange(t.id, newCat)}
@@ -39,7 +38,6 @@ export function TransactionList({ items, onCategoryChange, onEssentialChange, on
             {t.card_last4 && <span>· ****-{t.card_last4}</span>}
             {onEssentialChange && (
               <EssentialToggle
-                transactionId={t.id}
                 override={t.essential_override ?? null}
                 effective={t.effective_essential ?? false}
                 onChange={(ov) => onEssentialChange(t.id, ov)}

@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { patchCategory } from "../lib/api";
 import { categoryLabel } from "../lib/categories";
 
 export const CATEGORIES = [
@@ -11,15 +10,13 @@ export const CATEGORIES = [
 ] as const;
 
 type Props = {
-  transactionId: string;
   effective: string;
   isOverridden: boolean;
   onChange: (newCategory: string) => void;
 };
 
-export function CategoryChip({ transactionId, effective, isOverridden, onChange }: Props) {
+export function CategoryChip({ effective, isOverridden, onChange }: Props) {
   const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,22 +27,10 @@ export function CategoryChip({ transactionId, effective, isOverridden, onChange 
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [open]);
 
-  async function pick(cat: string) {
-    if (cat === effective) {
-      setOpen(false);
-      return;
-    }
-    setSaving(true);
-    const prev = effective;
-    onChange(cat); // 낙관적 업데이트
-    try {
-      await patchCategory(transactionId, cat);
-      setOpen(false);
-    } catch {
-      onChange(prev); // 롤백
-    } finally {
-      setSaving(false);
-    }
+  // 서버 요청·낙관적 갱신·롤백은 부모의 useCategoryOverride가 담당한다 (여기서 보내면 이중 PATCH).
+  function pick(cat: string) {
+    setOpen(false);
+    if (cat !== effective) onChange(cat);
   }
 
   const bg = effective === "unknown" ? "bg-zinc-700" : "bg-blue-700";
@@ -55,8 +40,7 @@ export function CategoryChip({ transactionId, effective, isOverridden, onChange 
     <div ref={ref} className="relative inline-block">
       <button
         onClick={() => setOpen((v) => !v)}
-        disabled={saving}
-        className={`${bg} text-white text-xs px-2 py-0.5 rounded disabled:opacity-50`}
+        className={`${bg} text-white text-xs px-2 py-0.5 rounded`}
         aria-label={`카테고리: ${categoryLabel(effective)}`}
       >
         {categoryLabel(effective)}{dot} ▾

@@ -133,3 +133,63 @@ async def remove_transaction(
         user_id, transaction_id,
     )
     return row is not None
+
+
+async def same_merchant_pending(
+    conn: asyncpg.Connection, user_id: UUID, transaction_id: UUID
+) -> tuple[int, str | None]:
+    """이 거래와 같은 정규화 가맹점의 다른 거래 중, 이 거래의 카테고리로 바꿀 수 있는 건수.
+
+    대상: 같은 사용자, 사용자가 직접 고치지 않은 거래(override NULL), 카테고리가 다른 것.
+    Returns (건수, 정규화 가맹점명). 가맹점명이 비어 있으면 (0, None).
+    """
+    row = await conn.fetchrow(
+        """
+        SELECT t.merchant_normalized AS merchant,
+               (SELECT COUNT(*) FROM transactions o
+                WHERE o.user_id = $1 AND o.id <> t.id
+                  AND o.merchant_normalized = t.merchant_normalized
+                  AND o.user_category_override IS NULL
+                  AND o.category <> COALESCE(t.user_category_override, t.category)) AS pending
+        FROM transactions t
+        WHERE t.id = $2 AND t.user_id = $1
+        """,
+        user_id, transaction_id,
+    )
+    if row is None or not row["merchant"]:
+        return 0, None
+    return row["pending"], row["merchant"]
+
+
+async def apply_category_to_merchant(
+    conn: asyncpg.Connection, user_id: UUID, transaction_id: UUID
+) -> int | None:
+    """이 거래의 카테고리를 같은 가맹점의 대상 거래(same_merchant_pending 기준)에 일괄 적용.
+
+    사용자 수정(override)으로 기록되어 이후 업로드 학습에도 반영된다.
+    Returns 갱신 건수, 거래가 없거나 다른 사용자 것이면 None.
+    """
+    exists = await conn.fetchval(
+        "SELECT 1 FROM transactions WHERE id = $2 AND user_id = $1", user_id, transaction_id
+    )
+    if exists is None:
+        return None
+    rows = await conn.fetch(
+        """
+        WITH t AS (
+            SELECT merchant_normalized AS m,
+                   COALESCE(user_category_override, category) AS c
+            FROM transactions WHERE id = $2 AND user_id = $1
+        )
+        UPDATE transactions o SET user_category_override = t.c
+        FROM t
+        WHERE o.user_id = $1 AND o.id <> $2
+          AND t.m IS NOT NULL AND t.m <> ''
+          AND o.merchant_normalized = t.m
+          AND o.user_category_override IS NULL
+          AND o.category <> t.c
+        RETURNING o.id
+        """,
+        user_id, transaction_id,
+    )
+    return len(rows)
