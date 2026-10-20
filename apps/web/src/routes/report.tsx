@@ -110,14 +110,21 @@ export function ReportPage() {
         )}
       </Section>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Section title="전월보다 늘어난 지출">
-          <ChangeList items={r.category_changes.increased} tone="text-red-300" />
+      {r.available_months.includes(r.summary.prev_month) ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Section title="전월보다 늘어난 지출">
+            <ChangeList items={r.category_changes.increased} tone="text-red-300" />
+          </Section>
+          <Section title="전월보다 줄어든 지출">
+            <ChangeList items={r.category_changes.decreased} tone="text-emerald-300" />
+          </Section>
+        </div>
+      ) : (
+        // 전월 기록이 없으면 모든 카테고리가 "늘어남"으로 보이는 착시 → 비교 생략
+        <Section title="전월 대비">
+          <p className="text-sm text-zinc-500">비교할 전월 기록이 없어요</p>
         </Section>
-        <Section title="전월보다 줄어든 지출">
-          <ChangeList items={r.category_changes.decreased} tone="text-emerald-300" />
-        </Section>
-      </div>
+      )}
 
       <Section title="많이 쓴 카테고리 Top 5">
         <ul className="space-y-1 text-sm">
