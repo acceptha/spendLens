@@ -1,4 +1,5 @@
 import { categoryLabel } from "../lib/categories";
+import { ro } from "../lib/format";
 
 export type SameMerchantOffer = { id: string; merchant: string; category: string; count: number };
 
@@ -9,10 +10,11 @@ export function SameMerchantBanner({ offer, onApply, onDismiss, pending }: {
   onDismiss: () => void;
   pending: boolean;
 }) {
+  const label = categoryLabel(offer.category);
   return (
     <div role="status" className="mb-4 flex flex-wrap items-center gap-2 bg-blue-950/50 border border-blue-800 text-blue-100 text-sm rounded p-3">
       <span className="flex-1 min-w-0">
-        {`같은 가맹점 '${offer.merchant}' 거래 ${offer.count}건도 '${categoryLabel(offer.category)}'로 바꿀까요?`}
+        {`같은 가맹점 '${offer.merchant}' 거래 ${offer.count}건도 '${label}'${ro(label)} 바꿀까요?`}
       </span>
       <button onClick={onApply} disabled={pending}
         className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50">
