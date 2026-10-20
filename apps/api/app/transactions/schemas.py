@@ -2,7 +2,7 @@ from datetime import date, time
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class TransactionIn(BaseModel):
@@ -31,6 +31,7 @@ class TransactionOut(BaseModel):
     installment_months: int | None
     is_canceled: bool
     category: str
+    source_type: str  # 카드사/은행 파서 키 또는 "manual"(직접 입력)
     # W3 추가
     auto_category: str
     user_category_override: str | None
@@ -74,3 +75,21 @@ class ApplyToMerchantResponse(BaseModel):
 
 class EssentialPatchRequest(BaseModel):
     essential_override: bool | None
+
+
+class ManualTransactionRequest(BaseModel):
+    """현금 지출·수입 등 명세서에 없는 거래 직접 입력."""
+    kind: Literal["expense", "income"]
+    txn_date: date
+    amount: int = Field(..., ge=1, lt=100_000_000)
+    merchant: str
+    # 생략 시: 지출은 업로드와 같은 자동 분류(수정 학습 → 룰북 → LLM), 수입은 income
+    category: CategoryLiteral | None = None
+
+    @field_validator("merchant")
+    @classmethod
+    def _merchant_trimmed(cls, v: str) -> str:
+        v = v.strip()
+        if not 1 <= len(v) <= 100:
+            raise ValueError("merchant must be 1-100 characters")
+        return v

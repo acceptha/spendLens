@@ -19,10 +19,12 @@ import {
   applyCategoryToMerchant,
   patchEssential,
   deleteTransaction,
+  createTransaction,
   fetchBudgetStatus,
   fetchMonthlyReport,
   putBudget,
   api,
+  type ManualTransactionInput,
   type TransactionRow,
 } from "./api";
 
@@ -227,6 +229,19 @@ export function useApplyToMerchant() {
       qc.invalidateQueries({ queryKey: ["insight"] });
       qc.invalidateQueries({ queryKey: ["budget"] });
       qc.invalidateQueries({ queryKey: ["report"] });
+    },
+  });
+}
+
+export function useCreateTransaction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ManualTransactionInput) => createTransaction(input),
+    onSuccess: () => {
+      // 새 거래는 월 목록·모든 집계에 영향.
+      for (const key of ["transactions", "months", "dashboard", "insight", "budget", "report"]) {
+        qc.invalidateQueries({ queryKey: [key] });
+      }
     },
   });
 }

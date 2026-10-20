@@ -4,6 +4,7 @@ import { useAuth } from "../stores/auth";
 import { UploadDropzone } from "../components/UploadDropzone";
 import { TransactionList } from "../components/TransactionList";
 import { FilterBar } from "../components/FilterBar";
+import { ManualEntryForm } from "../components/ManualEntryForm";
 import { SameMerchantBanner, type SameMerchantOffer } from "../components/SameMerchantBanner";
 import { useDebouncedValue } from "../lib/useDebouncedValue";
 import { uploadErrorMessage, uploadSuccessMessage } from "../lib/uploadMessages";
@@ -88,6 +89,7 @@ export function AppPage() {
       <div className="max-w-3xl mx-auto p-4 sm:p-8">
         <h2 className="text-2xl mb-4">거래내역</h2>
         <UploadDropzone onFile={(file) => upload.mutate(file)} />
+        <ManualEntryForm />
         {msg && <p className="my-4 text-sm text-zinc-400">{msg}</p>}
       </div>
       <FilterBar

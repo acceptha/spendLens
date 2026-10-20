@@ -82,6 +82,7 @@ export type TransactionRow = {
   is_canceled?: boolean;
   essential_override?: boolean | null;
   effective_essential?: boolean;
+  source_type?: string; // "manual" = 직접 입력
 };
 
 export async function fetchTransactions(params: {
@@ -239,5 +240,18 @@ export async function fetchMonthlyReport(month?: string): Promise<MonthlyReport>
   const { data } = await api.get<MonthlyReport>(
     month ? `/reports/monthly?month=${month}` : "/reports/monthly",
   );
+  return data;
+}
+
+export type ManualTransactionInput = {
+  kind: "expense" | "income";
+  txn_date: string;
+  amount: number;
+  merchant: string;
+  category: string | null; // null = 자동(지출: 자동 분류, 수입: income)
+};
+
+export async function createTransaction(input: ManualTransactionInput): Promise<TransactionRow> {
+  const { data } = await api.post<TransactionRow>("/transactions", input);
   return data;
 }

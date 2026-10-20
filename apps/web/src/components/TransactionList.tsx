@@ -22,6 +22,9 @@ export function TransactionList({ items, onCategoryChange, onEssentialChange, on
             <span className="min-w-0 break-words">
               {t.txn_date} · {t.merchant_raw}
               {t.is_canceled && <span className="ml-2 text-red-400 text-xs">[취소]</span>}
+              {t.source_type === "manual" && (
+                <span className="ml-2 text-xs px-1.5 rounded bg-zinc-800 text-zinc-300">직접 입력</span>
+              )}
             </span>
             <span className="font-mono whitespace-nowrap shrink-0">{Number(t.amount).toLocaleString()}원</span>
           </div>
