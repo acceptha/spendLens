@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, DonutChart, Title } from "@tremor/react";
 import { InsightCard } from "../components/InsightCard";
+import { BudgetSummaryCard } from "../components/BudgetSummaryCard";
 import { MetricStrip } from "../components/MetricStrip";
 import { CashflowChart } from "../components/CashflowChart";
 import { EssentialDonut } from "../components/EssentialDonut";
@@ -66,6 +67,7 @@ export function DashboardPage() {
       ) : (
         <div className="space-y-4">
           {month && <InsightCard month={month} />}
+          <BudgetSummaryCard month={month} />
           {summary && <MetricStrip summary={summary} />}
           <CashflowChart data={cashflow} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

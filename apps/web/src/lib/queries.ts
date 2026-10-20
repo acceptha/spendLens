@@ -174,6 +174,7 @@ export function useCategoryOverride() {
         qc.invalidateQueries({ queryKey: ["dashboard"] });
         // 서버가 해당 월 인사이트 캐시를 지운다(DB 트리거) → 다시 조회해 "생성" 상태로.
         qc.invalidateQueries({ queryKey: ["insight"] });
+        qc.invalidateQueries({ queryKey: ["budget"] });
       }
     },
   });
@@ -201,6 +202,7 @@ export function useEssentialOverride() {
         qc.invalidateQueries({ queryKey: ["dashboard"] });
         // 서버가 해당 월 인사이트 캐시를 지운다(DB 트리거) → 다시 조회해 "생성" 상태로.
         qc.invalidateQueries({ queryKey: ["insight"] });
+        qc.invalidateQueries({ queryKey: ["budget"] });
       }
     },
   });
@@ -227,6 +229,7 @@ export function useDeleteTransaction() {
       qc.invalidateQueries({ queryKey: ["months"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["insight"] });
+      qc.invalidateQueries({ queryKey: ["budget"] });
     },
   });
 }
@@ -259,6 +262,7 @@ export function useUploadStatement() {
       qc.invalidateQueries({ queryKey: ["months"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["insight"] });
+      qc.invalidateQueries({ queryKey: ["budget"] });
     },
   });
 }
