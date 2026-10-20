@@ -101,6 +101,7 @@ export function BudgetPage() {
       ) : items.length === 0 && editable ? (
         <div className="border border-zinc-800 rounded p-4 space-y-3">
           <p className="text-zinc-300">한 달 총 지출 한도부터 정해보세요.</p>
+          <p className="text-xs text-zinc-500">처음 정한 예산은 이미 올린 이전 달 기록에도 적용돼요.</p>
           <AmountForm label="총 지출 예산" pending={save.isPending}
                       onSubmit={(a) => submit(TOTAL_KEY, a)} />
         </div>

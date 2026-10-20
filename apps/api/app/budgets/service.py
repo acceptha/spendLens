@@ -126,7 +126,23 @@ async def status(conn: asyncpg.Connection, user_id: UUID, month: str, today: dat
 async def set_budget(
     conn: asyncpg.Connection, user_id: UUID, category: str, amount: int | None, month: str
 ) -> None:
-    """이번 달(month)부터 적용. 같은 달 재저장은 덮어쓰기, amount None = 해제."""
+    """이번 달(month)부터 적용. 같은 달 재저장은 덮어쓰기, amount None = 해제.
+
+    단, 그 카테고리의 **첫 예산**은 사용자의 가장 오래된 거래 월부터 적용한다 —
+    명세서는 월이 지난 뒤 올리므로 이미 올라온 과거 달도 바로 예산과 비교할 수 있게.
+    """
+    if amount is not None:
+        has_history = await conn.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM budgets WHERE user_id = $1 AND category = $2)",
+            user_id, category,
+        )
+        if not has_history:
+            earliest = await conn.fetchval(
+                "SELECT to_char(MIN(txn_date), 'YYYY-MM') FROM transactions WHERE user_id = $1",
+                user_id,
+            )
+            if earliest is not None and earliest < month:
+                month = earliest
     await conn.execute(
         """
         INSERT INTO budgets (user_id, category, amount, effective_from)

@@ -40,6 +40,7 @@ describe("BudgetPage", () => {
     fetchBudgetStatusMock.mockResolvedValue(status({}));
     setup();
     expect(await screen.findByText(/총 지출 한도부터 정해보세요/)).toBeInTheDocument();
+    expect(screen.getByText(/이전 달 기록에도 적용/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("총 지출 예산"), { target: { value: "1500000" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => expect(putBudgetMock).toHaveBeenCalledWith("_total", 1500000));
