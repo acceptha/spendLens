@@ -18,6 +18,8 @@ import {
   patchCategory,
   patchEssential,
   deleteTransaction,
+  fetchBudgetStatus,
+  putBudget,
   api,
   type TransactionRow,
 } from "./api";
@@ -42,6 +44,7 @@ export const qk = {
     byEssential: (month: string) => ["dashboard", "byEssential", month] as const,
   },
   insight: (month: string) => ["insight", month] as const,
+  budget: (month: string) => ["budget", month] as const,
 };
 
 // --- 읽기 훅 ---
@@ -105,6 +108,14 @@ export function useInsight(month: string | undefined) {
   return useQuery({
     queryKey: qk.insight(month ?? ""),
     queryFn: () => fetchInsight(month!),
+    enabled: !!month,
+  });
+}
+
+export function useBudgetStatus(month: string | undefined) {
+  return useQuery({
+    queryKey: qk.budget(month ?? ""),
+    queryFn: () => fetchBudgetStatus(month!),
     enabled: !!month,
   });
 }
@@ -216,6 +227,17 @@ export function useDeleteTransaction() {
       qc.invalidateQueries({ queryKey: ["months"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["insight"] });
+    },
+  });
+}
+
+export function useSaveBudget() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ category, amount }: { category: string; amount: number | null }) =>
+      putBudget(category, amount),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["budget"] });
     },
   });
 }

@@ -174,3 +174,28 @@ export async function fetchTopMerchants(month: string, limit: number = 5): Promi
   const { data } = await api.get<MerchantBucket[]>(`/dashboard/top-merchants?month=${month}&limit=${limit}`);
   return data;
 }
+
+export type BudgetLevel = "ok" | "warn" | "over";
+export type BudgetItem = {
+  category: string;
+  budget: string;
+  spent: string;
+  ratio: number;
+  projected: string | null;
+  level: BudgetLevel;
+};
+export type BudgetStatus = {
+  month: string;
+  is_current: boolean;
+  days_elapsed: number;
+  days_in_month: number;
+  items: BudgetItem[];
+};
+
+export async function fetchBudgetStatus(month: string): Promise<BudgetStatus> {
+  const { data } = await api.get<BudgetStatus>(`/budgets/status?month=${month}`);
+  return data;
+}
+export async function putBudget(category: string, amount: number | null): Promise<void> {
+  await api.put("/budgets", { category, amount });
+}

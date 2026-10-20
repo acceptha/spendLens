@@ -29,3 +29,14 @@ export function categoryLabel(key: string): string {
 export function categoryKey(label: string): string {
   return Object.keys(CATEGORY_LABELS).find((k) => CATEGORY_LABELS[k] === label) ?? label;
 }
+
+export const TOTAL_KEY = "_total";
+
+/** 예산을 걸 수 있는 카테고리 — 지출 집계에서 빠지는 수입·이체·저축 제외 (서버와 동일). */
+export const BUDGETABLE_CATEGORIES = Object.keys(CATEGORY_LABELS).filter(
+  (k) => !["income", "transfer", "savings"].includes(k),
+);
+
+export function budgetLabel(key: string): string {
+  return key === TOTAL_KEY ? "총 지출" : categoryLabel(key);
+}
