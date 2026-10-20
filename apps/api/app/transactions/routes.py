@@ -12,14 +12,18 @@ from app.db import acquire
 from app.parsers import ParseError, detect
 from app.parsers.xls import is_xls, xls_to_xlsx
 from app.transactions.schemas import (
+    ApplyToMerchantResponse,
     EssentialPatchRequest,
     TransactionOut,
     TransactionPatchRequest,
+    TransactionPatchResponse,
     UploadResponse,
 )
 from app.transactions.service import (
+    apply_category_to_merchant,
     insert_transactions,
     remove_transaction,
+    same_merchant_pending,
     update_category,
     update_essential,
 )
@@ -158,16 +162,30 @@ async def list_transactions(
     return [TransactionOut(**dict(r)) for r in rows]
 
 
-@router.patch("/{transaction_id}", status_code=204)
+@router.patch("/{transaction_id}", response_model=TransactionPatchResponse)
 async def patch_transaction(
     transaction_id: UUID,
     req: TransactionPatchRequest,
     user_id: UUID = Depends(current_user_id),  # noqa: B008
-) -> None:
+) -> TransactionPatchResponse:
     async with acquire() as conn:
         updated = await update_category(conn, user_id, transaction_id, req.category)
-    if not updated:
+        if not updated:
+            raise HTTPException(status_code=404, detail="NOT_FOUND")
+        pending, merchant = await same_merchant_pending(conn, user_id, transaction_id)
+    return TransactionPatchResponse(same_merchant_pending=pending, merchant=merchant)
+
+
+@router.post("/{transaction_id}/apply-to-merchant", response_model=ApplyToMerchantResponse)
+async def apply_to_merchant(
+    transaction_id: UUID,
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
+) -> ApplyToMerchantResponse:
+    async with acquire() as conn:
+        updated = await apply_category_to_merchant(conn, user_id, transaction_id)
+    if updated is None:
         raise HTTPException(status_code=404, detail="NOT_FOUND")
+    return ApplyToMerchantResponse(updated=updated)
 
 
 @router.patch("/{transaction_id}/essential", status_code=204)

@@ -54,7 +54,7 @@ async def test_patch_updates_category(test_db_pool):
             headers={"Authorization": f"Bearer {token}"},
             json={"category": "groceries"},
         )
-        assert r.status_code == 204, r.text
+        assert r.status_code == 200, r.text
 
         # DB 직접 확인 — override 컬럼만 갱신, category(자동) 그대로
         async with test_db_pool.acquire() as conn:

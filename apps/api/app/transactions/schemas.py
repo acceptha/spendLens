@@ -62,5 +62,15 @@ class TransactionPatchRequest(BaseModel):
     category: CategoryLiteral
 
 
+class TransactionPatchResponse(BaseModel):
+    # 같은 가맹점에서 이 카테고리로 일괄 변경할 수 있는 거래 수 (웹이 "모두 변경" 제안에 사용)
+    same_merchant_pending: int
+    merchant: str | None
+
+
+class ApplyToMerchantResponse(BaseModel):
+    updated: int
+
+
 class EssentialPatchRequest(BaseModel):
     essential_override: bool | None
