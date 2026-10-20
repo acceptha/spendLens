@@ -19,6 +19,9 @@ const AppPage = lazy(() =>
 const DashboardPage = lazy(() =>
   import("./routes/dashboard").then((m) => ({ default: m.DashboardPage })),
 );
+const BudgetPage = lazy(() =>
+  import("./routes/budget").then((m) => ({ default: m.BudgetPage })),
+);
 
 export function App() {
   const setAuthReady = useAuth((s) => s.setAuthReady);
@@ -40,6 +43,7 @@ export function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/app" element={<ProtectedRoute><AppPage /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/budget" element={<ProtectedRoute><BudgetPage /></ProtectedRoute>} />
         </Routes>
       </Suspense>
     </BrowserRouter>

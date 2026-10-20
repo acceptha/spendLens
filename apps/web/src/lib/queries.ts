@@ -18,6 +18,8 @@ import {
   patchCategory,
   patchEssential,
   deleteTransaction,
+  fetchBudgetStatus,
+  putBudget,
   api,
   type TransactionRow,
 } from "./api";
@@ -42,6 +44,7 @@ export const qk = {
     byEssential: (month: string) => ["dashboard", "byEssential", month] as const,
   },
   insight: (month: string) => ["insight", month] as const,
+  budget: (month: string) => ["budget", month] as const,
 };
 
 // --- 읽기 훅 ---
@@ -109,6 +112,14 @@ export function useInsight(month: string | undefined) {
   });
 }
 
+export function useBudgetStatus(month: string | undefined) {
+  return useQuery({
+    queryKey: qk.budget(month ?? ""),
+    queryFn: () => fetchBudgetStatus(month!),
+    enabled: !!month,
+  });
+}
+
 // --- mutation 훅 ---
 
 const CATEGORY_MUTATION_KEY = ["override-category"] as const;
@@ -163,6 +174,7 @@ export function useCategoryOverride() {
         qc.invalidateQueries({ queryKey: ["dashboard"] });
         // 서버가 해당 월 인사이트 캐시를 지운다(DB 트리거) → 다시 조회해 "생성" 상태로.
         qc.invalidateQueries({ queryKey: ["insight"] });
+        qc.invalidateQueries({ queryKey: ["budget"] });
       }
     },
   });
@@ -190,6 +202,7 @@ export function useEssentialOverride() {
         qc.invalidateQueries({ queryKey: ["dashboard"] });
         // 서버가 해당 월 인사이트 캐시를 지운다(DB 트리거) → 다시 조회해 "생성" 상태로.
         qc.invalidateQueries({ queryKey: ["insight"] });
+        qc.invalidateQueries({ queryKey: ["budget"] });
       }
     },
   });
@@ -216,6 +229,18 @@ export function useDeleteTransaction() {
       qc.invalidateQueries({ queryKey: ["months"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["insight"] });
+      qc.invalidateQueries({ queryKey: ["budget"] });
+    },
+  });
+}
+
+export function useSaveBudget() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ category, amount }: { category: string; amount: number | null }) =>
+      putBudget(category, amount),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["budget"] });
     },
   });
 }
@@ -237,6 +262,7 @@ export function useUploadStatement() {
       qc.invalidateQueries({ queryKey: ["months"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["insight"] });
+      qc.invalidateQueries({ queryKey: ["budget"] });
     },
   });
 }

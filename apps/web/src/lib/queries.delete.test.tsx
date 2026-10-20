@@ -66,7 +66,7 @@ describe("useDeleteTransaction", () => {
 
     const keys = spy.mock.calls.map((c) => JSON.stringify(c[0]?.queryKey));
     expect(keys).toEqual(expect.arrayContaining([
-      '["transactions"]', '["months"]', '["dashboard"]', '["insight"]',
+      '["transactions"]', '["months"]', '["dashboard"]', '["insight"]', '["budget"]',
     ]));
   });
 });

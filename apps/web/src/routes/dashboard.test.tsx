@@ -12,6 +12,9 @@ vi.mock("../lib/api", () => ({
   fetchCashflowByMonth: vi.fn().mockResolvedValue([]),
   fetchByEssential: vi.fn().mockResolvedValue([]),
   fetchTopMerchants: vi.fn().mockResolvedValue([]),
+  fetchBudgetStatus: vi.fn().mockResolvedValue({
+    month: "", is_current: true, days_elapsed: 1, days_in_month: 30, items: [],
+  }),
   fetchInsight: vi.fn(), generateInsight: vi.fn(),
   patchCategory: vi.fn(), patchEssential: vi.fn(), api: { post: vi.fn() },
 }));

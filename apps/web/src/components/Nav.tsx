@@ -32,6 +32,7 @@ export function Nav() {
       <span className="font-bold text-white mr-1 sm:mr-4 shrink-0 whitespace-nowrap">spendLens</span>
       <Link to="/app" className={linkCls("/app")}>거래내역</Link>
       <Link to="/dashboard" className={linkCls("/dashboard")}>대시보드</Link>
+      <Link to="/budget" className={linkCls("/budget")}>예산</Link>
       <div className="flex-1" />
       <button onClick={logout} className="text-sm text-zinc-400 hover:text-white whitespace-nowrap shrink-0">
         로그아웃
