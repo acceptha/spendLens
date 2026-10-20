@@ -66,6 +66,7 @@
 - 인라인 수정: 카테고리 칩 드롭다운, **필수/비필수 3-state 토글**(자동/필수/비필수).
 - 낙관적 갱신(즉시 반영 → 실패 시 롤백) + 동시 토글 경합 가드.
 - **같은 가맹점 일괄 변경**: 카테고리를 고치면 같은 브랜드의 다른 거래 N건(직접 고친 것·이미 같은 것 제외)을 "모두 변경"할지 배너로 제안. 일괄 변경도 사용자 수정으로 기록돼 업로드 학습에 이어진다.
+- **직접 입력**: 현금 등 명세서에 없는 지출·수입을 폼으로 추가(`source_type=manual`, "직접 입력" 배지). 카테고리 생략 시 지출은 업로드와 같은 자동 분류, 수입은 income. 중복 검사 없음(같은 내용 두 번도 각각 기록). 수정은 삭제 후 재입력.
 - **거래 삭제**: 행의 "삭제" → 확인 후 즉시 목록에서 제거(실패 시 복원), 월 목록·대시보드·인사이트 캐시 무효화.
 
 ### 3.5 대시보드 분석
@@ -109,7 +110,8 @@
 | POST | `/auth/logout` | 로그아웃(쿠키 무효화) | ✓ |
 | GET | `/seed/transactions` | 게스트 데모 거래 | — |
 | POST | `/transactions/upload` | 명세서 XLSX 업로드 → `{uploaded, skipped}` | ✓ |
-| GET | `/transactions` | 거래 목록(month/category/search/limit/offset) | ✓ |
+| GET | `/transactions` | 거래 목록(month/category/search/limit/offset), `source_type` 포함 | ✓ |
+| POST | `/transactions` | 직접 입력 `{kind: expense\|income, txn_date, amount, merchant, category?}` → 201 거래. 미래 날짜 400 `FUTURE_DATE` | ✓ |
 | GET | `/transactions/months` | 거래 있는 월 목록(DESC) | ✓ |
 | PATCH | `/transactions/{id}` | 카테고리 오버라이드 → `{same_merchant_pending, merchant}` | ✓ |
 | POST | `/transactions/{id}/apply-to-merchant` | 같은 정규화 가맹점의 다른 거래(직접 수정 제외)에 카테고리 일괄 적용 → `{updated}` | ✓ |
