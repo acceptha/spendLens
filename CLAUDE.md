@@ -7,6 +7,7 @@
 - Python 3.12+ / Pydantic v2 / FastAPI
 - DB: PostgreSQL 16 + **asyncpg raw SQL** (SQLAlchemy ORM 사용 금지)
 - 마이그레이션: Alembic **raw SQL** (`--autogenerate` 금지)
+  - `sqlalchemy` 의존성은 Alembic 엔진(`migrations/env.py`)과 마이그레이션의 `sa.text(...)` 용도로만 존재. 앱 코드(`app/`)에서 import 금지
 - 패키지 매니저: **uv** + `pyproject.toml` (pip / requirements.txt 금지)
 - 모노레포: `apps/api` (FastAPI), `apps/web` (React + Vite)
 
@@ -31,6 +32,7 @@ apps/api/app/
 ├── main.py
 ├── db.py
 ├── settings.py
+├── redis_client.py
 ├── auth/                # 도메인
 │   ├── routes.py
 │   ├── schemas.py
@@ -42,9 +44,36 @@ apps/api/app/
 │   ├── routes.py
 │   ├── schemas.py
 │   └── service.py
-├── parsers/             # 인프라 (라우트 없음)
-│   ├── simple_rules.py
-│   └── samsung_card.py
+├── dashboard/           # 도메인 (스키마는 routes.py 안에 정의)
+│   ├── routes.py
+│   └── service.py
+├── insights/            # 도메인
+│   ├── routes.py
+│   ├── schemas.py
+│   ├── service.py
+│   ├── llm.py
+│   └── rules.py
+├── budgets/             # 도메인
+│   ├── routes.py
+│   ├── schemas.py
+│   └── service.py
+├── parsers/             # 인프라 (라우트 없음, registry는 __init__.py)
+│   ├── __init__.py
+│   ├── samsung_card.py
+│   ├── woori_card.py
+│   ├── hana_bank.py
+│   └── xls.py
+├── categorization/      # 인프라 (라우트 없음)
+│   ├── service.py
+│   ├── rulebook.py
+│   ├── llm.py
+│   ├── cache.py
+│   ├── budget.py
+│   ├── merchant.py
+│   ├── essential.py
+│   └── labels.py
+├── common/              # 인프라 (라우트 없음)
+│   └── rate_limit.py
 └── seed/                # 피처
     ├── routes.py
     └── kim_jichul.py
@@ -111,7 +140,13 @@ raise HTTPException(status_code=401, detail="INVALID_CREDENTIALS")
 raise HTTPException(status_code=400, detail={"error": "INVALID_FILE_TYPE", "expected": ".xlsx"})
 ```
 
-파서 등 인프라 모듈만 커스텀 예외(`ParseError(code, **details)`)를 사용. 라우터에서 catch 후 `HTTPException`으로 변환한다.
+라우터 밖의 내부 로직(파서·서비스·LLM 호출 등)은 커스텀 **도메인 예외**를 raise하고, 라우터에서 catch 후 `HTTPException`으로 변환한다. 현재 존재하는 예외:
+
+- `ParseError(code, **details)` — `parsers/`
+- `PasswordPolicyError` — `auth/password.py` → 400 `WEAK_PASSWORD`
+- `BudgetExceededError` — `insights/service.py` → 503 `BUDGET_EXCEEDED`
+- `InsightError` — `insights/llm.py` → 502 `INSIGHT_GENERATION_FAILED`
+- `LLMClassifyError` — `categorization/llm.py` (분류 서비스 내부에서 처리, 라우터까지 오지 않음)
 
 에러 코드는 `UPPER_SNAKE_CASE` 상수.
 

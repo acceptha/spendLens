@@ -2,7 +2,7 @@
 
 > 광고 없는 개인 가계부. 카드/은행 명세서를 업로드하면 자동 분류·분석하고, Claude로 월간 인사이트를 만든다. 데이터는 본인 서버(Lightsail)에 저장.
 >
-> 최종 갱신: 2026-06 (W5까지 반영). 주차별 상세는 `docs/superpowers/specs/`·`docs/releases/`, 회고는 `docs/retros/` 참고.
+> 최종 갱신: 2026-10 (W7까지 반영). 주차별 상세는 `docs/superpowers/specs/`·`docs/releases/`, 회고는 `docs/retros/` 참고.
 
 ---
 
@@ -11,7 +11,7 @@
 | 항목 | 내용 |
 |---|---|
 | 형태 | 모노레포 — `apps/api`(FastAPI 백엔드), `apps/web`(React+Vite 프론트) |
-| 핵심 흐름 | 회원가입 → 카드/은행 명세서(XLSX) 업로드 → 자동 파싱·분류 → 거래 조회/수정 → 대시보드 분석 → 월간 LLM 인사이트 |
+| 핵심 흐름 | 회원가입 → 카드/은행 명세서(XLSX/XLS) 업로드 → 자동 파싱·분류 → 거래 조회/수정 → 대시보드 분석 → 월간 LLM 인사이트 → 월 예산 관리 |
 | 사용자 모드 | 본인 모드(로그인) + 게스트 데모(`/guest`, 로그인 없이 시드 데이터 열람) |
 | 호스팅 | 웹=Vercel, API=AWS Lightsail(Docker Compose + Caddy + Let's Encrypt), DB=PostgreSQL, 캐시/예산=Redis |
 | 도메인 | 임시: `spend-lens-web-suim9770-5820s-projects.vercel.app`(웹) · 웹 `/api/*` → Vercel rewrite → `api-3-38-103-25.sslip.io`(API). 원 도메인 `suim-app.store`는 2026-10 만료 — 재등록 시 `apps/web/vercel.json` rewrite 목적지만 되돌리면 됨 |
@@ -30,10 +30,12 @@
 |---|---|
 | `auth/` | 회원가입·로그인·JWT·refresh·로그아웃, 관리자 시드, rate limit |
 | `transactions/` | 명세서 업로드, 거래 목록/필터/검색, 카테고리·essential 수정 |
-| `parsers/` | 카드/은행 XLSX 파서 (registry 패턴, 라우트 없음) |
-| `categorization/` | 룰북 + Claude Haiku LLM 분류, 월간 예산 가드, essential 매핑 |
+| `parsers/` | 카드/은행 XLSX 파서 + `.xls` 변환 (registry는 `parsers/__init__.py`, 라우트 없음) |
+| `categorization/` | 수정 학습 + 룰북 + Claude Haiku LLM 분류, 가맹점 정규화, 월간 LLM 예산 가드, essential 매핑, 한글 라벨 |
 | `dashboard/` | 집계 API (요약·카테고리·현금흐름·필수/비필수·Top 가맹점) |
-| `insights/` | 월간 LLM 인사이트 생성 + DB 캐시 |
+| `insights/` | 월간 LLM 인사이트 생성(룰 기반 폴백) + DB 캐시 |
+| `budgets/` | 월 예산(총액·카테고리별) 설정 + 현황 집계 |
+| `common/` | 공용 유틸 (IP 기반 rate limit) |
 | `seed/` | 게스트 데모 데이터 |
 
 원칙: DB는 `async with acquire() as conn`, 인증만 `Depends(current_user_id)`, 라우터에서 `HTTPException` 직접 raise(에러 코드 `UPPER_SNAKE_CASE`).
@@ -55,10 +57,10 @@
 
 ### 3.3 카테고리 자동 분류
 - **수정 학습**: 사용자가 직접 고친 카테고리는 같은 정규화 가맹점(브랜드)의 다음 업로드에 자동 분류로 적용(가장 최근 수정 우선, 사용자별). 룰북/LLM보다 먼저 — `categorization/service.learned_categories`.
-- **2단계**: 룰북(가맹점명 규칙) 우선 → 미매칭만 **Claude Haiku LLM** 분류.
+- **분류 순서**: 수정 학습 → 룰북(가맹점명 규칙) → Redis 캐시 → 미매칭만 **Claude Haiku LLM** 분류 → `unknown`.
 - 카테고리 19종(housing, utilities, telecom, groceries, health, insurance, transport, lunch, dinner, savings, income, transfer, coffee, snack_late, subscription, entertainment, shopping, etc, unknown).
 - **월간 LLM 예산 가드** — Redis 버킷에 비용 누적, 한도 초과 시 LLM 호출 차단(분류·인사이트 공유).
-- 사용자가 거래별 카테고리를 직접 오버라이드 가능. `effective_category = COALESCE(user_override, auto_category)` 단일 진실 출처.
+- 사용자가 거래별 카테고리를 직접 오버라이드 가능. `effective_category = COALESCE(user_category_override, category)` 단일 진실 출처.
 - **가맹점 정규화**(`categorization/merchant.py`): 별칭 테이블(주요 체인 정식명) + 휴리스틱(끝의 지점 토큰 제거)으로 "씨유(CU) 구로JNK점"→`CU`처럼 브랜드 단위로 묶는다. 업로드 시 `merchant_normalized`에 저장하고, Top 가맹점 그룹핑과 LLM 캐시 키(브랜치 통일 → hit↑)에 사용. 룰북은 raw 매칭 유지.
 
 ### 3.4 거래 조회 / 관리
@@ -78,14 +80,14 @@
 - 온디맨드 생성 후 `monthly_insights` 테이블에 캐시("다시 생성"은 캐시 무시 강제 재생성).
 - **LLM/룰 자동 폴백**: `ANTHROPIC_API_KEY`가 설정돼 있으면 Claude Haiku로 생성(분류와 동일 예산 버킷 공유, 초과 시 503). **키가 없거나(placeholder) LLM 호출이 실패하면(무효 키·네트워크·파싱 등) 집계 기반 룰 생성기**(`insights/rules.py`)로 동일 형태 인사이트를 만든다 — 어떤 상황에서도 인사이트는 생성됨, 룰 경로는 비용 0.
 
+### 3.7 게스트 데모
+- `/guest` — 로그인 없이 시드 사용자(김지철)의 한 달 거래로 분류·라벨을 미리 체험.
+
 ### 3.8 월 예산 (W7)
 - **총 지출 한도 + 카테고리별 한도**를 정하면 매달 반복 적용. 카테고리의 **첫 예산은 가장 오래된 거래 월부터** 소급 적용(명세서는 월이 지난 뒤 올리므로), 이후 변경은 **이번 달(KST)부터** 적용되고 지난달은 당시 예산 그대로(`budgets.effective_from` 행, 금액 NULL = 해제).
 - 사용액은 저장하지 않고 조회 시 집계 — 대시보드와 같은 규칙(출금, effective_category, 이체·저축 제외). 수입·이체·저축은 예산 대상 아님.
 - 진행률 + **월말 예상**(이번 달만: 사용액 ÷ 경과일 × 월 일수) + 상태: `over`(100% 이상) / `warn`(80% 이상 또는 예상 초과) / `ok`.
 - `/budget` 탭에서 설정·편집·추가(지난달은 읽기 전용), 대시보드 카드에 총액 진행률과 주의/초과 카테고리 최대 3개. 거래 업로드·삭제·수정 시 자동 갱신.
-
-### 3.7 게스트 데모
-- `/guest` — 로그인 없이 시드 사용자(김지철)의 한 달 거래로 분류·라벨을 미리 체험.
 
 ---
 
@@ -117,7 +119,11 @@
 | GET | `/insights?month=YYYY-MM` | 캐시된 월간 인사이트(없으면 null) | ✓ |
 | POST | `/insights/generate` | 인사이트 생성/재생성(`?force`, body `{month}`) | ✓ |
 
-주요 에러 코드: `INVALID_CREDENTIALS`, `WEAK_PASSWORD`, `EMAIL_ALREADY_EXISTS`, `TOO_MANY_REQUESTS`, `INVALID_FILE_TYPE`, `NOT_FOUND`, `INVALID_MONTH_FORMAT`, `INVALID_LAST_N`, `INVALID_CATEGORY`, `BUDGET_EXCEEDED`(503), `INSIGHT_GENERATION_FAILED`(502).
+주요 에러 코드:
+- 인증: `INVALID_CREDENTIALS`, `WEAK_PASSWORD`, `EMAIL_ALREADY_EXISTS`, `TOO_MANY_REQUESTS`(429), `MISSING_BEARER`, `MISSING_REFRESH`, `INVALID_TOKEN`, `TOKEN_EXPIRED`, `TOKEN_REVOKED`, `WRONG_TOKEN_TYPE`
+- 업로드: `INVALID_FILE_TYPE`, `FILE_TOO_LARGE`, 파서 `ParseError` 코드(`UNKNOWN_CARD_FORMAT`, `WORKBOOK_LOAD_FAILED`, `SHEET_NOT_FOUND`, `HEADER_NOT_FOUND`, `EMPTY_SHEET` 등)
+- 조회/수정: `NOT_FOUND`, `INVALID_MONTH_FORMAT`, `INVALID_LIMIT`, `INVALID_LAST_N`, `INVALID_PARAMETER`, `INVALID_CATEGORY`
+- LLM: `BUDGET_EXCEEDED`(503), `INSIGHT_GENERATION_FAILED`(502 — 실제로는 대부분 룰 폴백으로 흡수)
 
 ---
 
@@ -132,7 +138,7 @@
 | `/budget` | 예산 | 총액·카테고리별 월 예산 설정, 진행률·월말 예상·주의/초과 |
 | `/dashboard` | 대시보드 | 월간 인사이트 + 지표 + 현금흐름·카테고리·필수/비필수 차트 + Top 가맹점 |
 
-`/app`·`/dashboard`는 `ProtectedRoute`로 보호(부팅 시 토큰 재수화 후 판정). 서버 상태는 전부 TanStack Query(`lib/queries.ts`의 쿼리 키 팩토리 + useQuery/useMutation 훅)로 관리.
+`/app`·`/dashboard`·`/budget`은 `ProtectedRoute`로 보호(부팅 시 토큰 재수화 후 판정). 서버 상태는 전부 TanStack Query(`lib/queries.ts`의 쿼리 키 팩토리 + useQuery/useMutation 훅)로 관리.
 
 **PWA(설치형)**: `vite-plugin-pwa`(Workbox)로 매니페스트 + 서비스워커(앱 셸 프리캐시, `autoUpdate`) 생성. 홈 화면 추가·standalone 실행·앱 셸 오프라인 로드 지원(데이터는 온라인 필요). 아이콘/파비콘 `public/`. 웹 푸시·런타임 데이터 캐싱은 비목표.
 
@@ -147,6 +153,9 @@
 | **W3** | 본인 모드 UI | 필터/검색/인라인 오버라이드, Tremor 대시보드 4위젯, 카테고리 14→19, 통장 룰북 |
 | **W4** | 분석 고도화 | 월간 LLM 인사이트(+캐시), 입금/소득 분석, 필수/비필수 토글, B+ 대시보드 |
 | **W5** | 프론트 UX | TanStack Query 전면 전환(캐시·낙관적 갱신·debounce), 부팅 시 인증 재수화 |
+| **W6** | 가맹점 정규화 + PWA | 브랜드 단위 가맹점 그룹핑(`merchant_normalized`), 설치형 PWA |
+| 후속 | 운영·품질 | 도메인 만료 대응(Vercel `/api` 프록시), 거래 삭제, `.xls` 업로드, 수정 기반 분류 학습, 일일 DB 백업, 업타임 체크 |
+| **W7** | 월 예산 | 총액·카테고리별 월 예산, 진행률·월말 예상·주의/초과 경고, `/budget` 탭 |
 
 ---
 
@@ -155,7 +164,9 @@
 - **웹**: main 푸시 시 Vercel 자동 배포.
 - **API**: `apps/api/**` 변경 푸시 시 GitHub Actions(`Deploy API`) → GHCR 이미지 빌드 → Lightsail에서 `docker compose pull && up -d`. 컨테이너 기동 시 `alembic upgrade head` 자동 적용.
 - **CI**: 모든 push/PR에서 web(build+test) + api(ruff+pytest) 실행.
-- **환경변수(API)**: `DATABASE_URL`, `JWT_SECRET`, `WEB_ORIGIN`, `REDIS_URL`, `ADMIN_EMAIL`/`ADMIN_PASSWORD_HASH`, **`ANTHROPIC_API_KEY`**, `ANTHROPIC_MONTHLY_BUDGET_USD`. 운영은 Lightsail `/opt/spendlens/.env`.
+- **업타임 체크**: GitHub Actions(`uptime.yml`) 스케줄로 웹·`/api` 프록시·API 직접·TLS 만료 확인.
+- **백업**: `docker-compose.prod.yml`의 `backup` 서비스가 매일 `pg_dump`(gzip, 14일 보관). 복구 절차는 `infra/README.md`.
+- **환경변수(API)**: `DATABASE_URL`, `JWT_SECRET`, `WEB_ORIGIN`, `REDIS_URL`, `ADMIN_EMAIL`/`ADMIN_PASSWORD_HASH`, **`ANTHROPIC_API_KEY`**, `ANTHROPIC_MONTHLY_BUDGET_USD` (선택: `JWT_ACCESS_TTL_MINUTES`, `JWT_REFRESH_TTL_DAYS`, `LOG_LEVEL`). 운영은 Lightsail `/opt/spendlens/.env`.
 
 ---
 
@@ -164,4 +175,4 @@
 - **`ANTHROPIC_API_KEY` 없이도 핵심은 동작**: 인사이트는 룰 기반 폴백, 분류는 룰북으로 처리. 키를 설정하면 LLM 인사이트(더 풍부) + unknown 가맹점 LLM 분류가 추가로 켜짐. `settings.llm_enabled`(placeholder 키가 아니면 True)로 분기.
 - **모든 "지출" 집계는 소비 기준** — `transfer`(이체)·`savings`(저축)를 일관되게 제외한다(`NON_SPENDING_CATEGORIES`): 지출 총액/전월/건수(summary), 카테고리 도넛(by_category), 현금흐름 지출(cashflow expense), Top 가맹점(top_merchants), 필수/비필수(by_essential). effective_category 기준이라 이체를 실제 지출 카테고리로 재분류하면 자동 포함. (이체는 저축성·지출성이 섞여 라벨 없이는 성격 불명, 저축은 비소비.)
 - 웹 번들: 라우트 코드 스플리팅 적용 — 초기 번들 gzip ~83KB, 대시보드의 Tremor+recharts(gzip ~231KB)는 `/dashboard` 방문 시 지연 로딩. (대시보드 청크 자체는 여전히 큼 — 추가로 recharts/tremor 분리 여지 있음.)
-- 미구현(carry-over): 추가 카드사 파서(현대/신한/국민 등), 가맹점 정규화, 사용자별 분류 학습, 비밀번호 재설정/이메일 인증(SMTP), PWA/모바일 푸시. 상세 `docs/retros/w3.md`.
+- 미구현(carry-over): 추가 카드사 파서(현대/신한/국민 등), 비밀번호 재설정/이메일 인증(SMTP), 웹 푸시 알림. 상세 `docs/retros/w3.md`. (가맹점 정규화·PWA는 W6, 사용자별 분류 학습은 #49에서 구현)
