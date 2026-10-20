@@ -11,6 +11,7 @@ from app.dashboard.routes import router as dashboard_router
 from app.db import acquire, close_pool, init_pool
 from app.insights.routes import router as insights_router
 from app.redis_client import close_redis, init_redis
+from app.reports.routes import router as reports_router
 from app.seed.routes import router as seed_router
 from app.settings import settings
 from app.transactions.routes import router as transactions_router
@@ -48,6 +49,7 @@ app.include_router(transactions_router)
 app.include_router(dashboard_router)
 app.include_router(insights_router)
 app.include_router(budgets_router)
+app.include_router(reports_router)
 
 
 @app.get("/healthz")
