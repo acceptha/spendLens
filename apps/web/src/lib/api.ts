@@ -208,3 +208,36 @@ export async function fetchBudgetStatus(month: string): Promise<BudgetStatus> {
 export async function putBudget(category: string, amount: number | null): Promise<void> {
   await api.put("/budgets", { category, amount });
 }
+
+export type ReportCategoryChange = {
+  category: string;
+  amount: string;
+  prev_amount: string;
+  diff: string;
+};
+export type MonthlyReport = {
+  month: string | null;
+  available_months: string[];
+  summary: {
+    spent: string;
+    income: string;
+    net_savings: string;
+    savings_rate: number | null;
+    transaction_count: number;
+    prev_month: string;
+    prev_spent: string;
+    spent_diff_pct: number | null;
+  } | null;
+  top_categories: { category: string; amount: string; share: number }[];
+  category_changes: { increased: ReportCategoryChange[]; decreased: ReportCategoryChange[] };
+  budget: { total: number; kept: number; over: number; items: BudgetItem[] } | null;
+  insight: { summary: string; highlights: InsightHighlight[]; generated_at: string } | null;
+};
+
+/** month 생략 시 서버가 기본 월(이번 달 이전 최근 데이터 월)을 고른다. */
+export async function fetchMonthlyReport(month?: string): Promise<MonthlyReport> {
+  const { data } = await api.get<MonthlyReport>(
+    month ? `/reports/monthly?month=${month}` : "/reports/monthly",
+  );
+  return data;
+}
