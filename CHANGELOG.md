@@ -1,5 +1,54 @@
 # Changelog
 
+## W7 — 2026-10-20 (월 예산)
+
+### Added
+- `GET /budgets/status?month=YYYY-MM` — 월 예산 현황 (예산·사용액·비율·월말 예상·상태 `over`/`warn`/`ok`)
+- `PUT /budgets` — 예산 설정 `{category, amount}` (`_total`=총액, `amount: null`=해제). 이번 달(KST)부터 적용, 지난달은 당시 예산 유지
+- `app/budgets/` 모듈 (routes + schemas + service)
+- Frontend `/budget` 탭 + 대시보드 예산 카드 (총액 진행률 + 주의/초과 카테고리 최대 3개)
+
+### Changed
+- 카테고리의 **첫 예산은 가장 오래된 거래 월부터 소급 적용** (#52)
+- 모바일 375px에서 예산 탭 포함 nav가 넘치지 않도록 조정 (#51)
+
+### Migrations
+- `0007_add_budgets` — `budgets` 테이블 (`effective_from` 행 단위 이력)
+
+## W6 + 운영 후속 — 2026-07-09 ~ 2026-10-19
+
+### Added
+- 가맹점 정규화 (`categorization/merchant.py`) — 별칭 테이블 + 지점 토큰 제거로 브랜드 단위 그룹핑, `merchant_normalized` 저장, Top 가맹점·LLM 캐시 키에 사용 (#34)
+- 설치형 PWA — `vite-plugin-pwa` 매니페스트 + 서비스워커 + 아이콘 (#35)
+- `DELETE /transactions/{id}` — 거래 삭제 (API + 목록 버튼) (#44)
+- 레거시 `.xls` 업로드 — 서버에서 메모리상 `.xlsx` 변환 후 기존 파서 사용 (`parsers/xls.py`) (#47)
+- 수정 학습 — 사용자가 고친 카테고리를 같은 정규화 가맹점의 다음 업로드에 우선 적용 (#49)
+- 일일 Postgres 백업 서비스 (14일 보관) (#42), 스케줄 업타임 체크 워크플로 `uptime.yml` (#48)
+- 한글 카테고리 라벨 (`categorization/labels.py`) (#40)
+
+### Changed
+- 도메인(`suim-app.store`) 만료 대응 — 웹은 Vercel 기본 주소, API는 웹 `/api/*` 프록시 → `api-3-38-103-25.sslip.io` (#36, #39)
+- rate limit을 실제 클라이언트 IP 기준으로 (#38)
+- 현금흐름 추세를 최신 데이터 월 기준으로 고정 + 빈 달 0 채움 (#41)
+- 거래 변경 시 해당 월 인사이트 캐시 무효화 (#45)
+
+### Migrations
+- `0005_backfill_merchant_normalized` — 기존 거래 `merchant_normalized` 자동 백필 (#43)
+- `0006_invalidate_insight_on_txn_change` — 거래 INSERT/UPDATE/DELETE 시 해당 월 `monthly_insights` 삭제 트리거 (#45)
+
+## W5 — 2026-06-12 ~ 2026-07-08 (프론트 UX)
+
+### Added
+- 프론트 서버 상태를 TanStack Query로 전면 전환 (쿼리 키 팩토리, 낙관적 갱신, 검색 debounce, `keepPreviousData`)
+- 부팅 시 인증 재수화 — 새로고침해도 세션 유지 (#23, #25)
+- 룰 기반 인사이트 폴백 (`insights/rules.py`) — LLM 키가 없거나 호출 실패 시 사용 (#27, #28)
+- 대시보드 카테고리 차트 클릭 → `/app` 필터 프리필 (#29)
+- 라우트 단위 코드 스플리팅 (#30)
+
+### Changed
+- 모든 지출 집계에서 `transfer`·`savings` 제외 (`NON_SPENDING_CATEGORIES`) (#31, #32)
+- LLM 호출 실패를 `InsightError`로 감싸 500 대신 502 → 이후 룰 폴백으로 전환 (#26, #28)
+
 ## W4 — 2026-06-10 (분석 고도화)
 
 ### Added
