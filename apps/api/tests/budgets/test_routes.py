@@ -68,6 +68,9 @@ async def test_set_and_status_with_projection_and_levels(test_db_pool, today):
         assert by["_total"]["level"] == "ok"
         assert by["coffee"]["level"] == "over"
         assert by["coffee"]["ratio"] == 1.24
+        # NUMERIC 값이 지수 표기("5E+4")가 아니라 정수 문자열로 나가야 한다
+        assert by["coffee"]["budget"] == "50000"
+        assert by["_total"]["budget"] == "300000"
         assert float(by["shopping"]["spent"]) == 10000
         assert [i["category"] for i in items] == ["_total", "coffee", "shopping"]
 
