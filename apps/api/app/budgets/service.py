@@ -72,7 +72,8 @@ async def _budgets_for_month(
         """,
         user_id, month,
     )
-    return {r["category"]: r["amount"] for r in rows if r["amount"] is not None}
+    # NUMERIC(14,0)은 asyncpg가 Decimal('5E+4')처럼 지수형으로 줄 수 있어 정수로 정규화.
+    return {r["category"]: Decimal(int(r["amount"])) for r in rows if r["amount"] is not None}
 
 
 async def _spent_by_category(
