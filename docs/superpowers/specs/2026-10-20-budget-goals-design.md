@@ -37,7 +37,8 @@ CREATE TABLE budgets (
 ```
 
 - **월 M의 예산**: 카테고리별로 `effective_from <= M` 인 행 중 `effective_from`이 가장 큰 행. 그 `amount`가 NULL이거나 행이 없으면 예산 없음.
-- **저장(PUT)**: 항상 `effective_from = 이번 달(Asia/Seoul)` 로 upsert(`ON CONFLICT (user_id, category, effective_from) DO UPDATE`). 같은 달 재수정은 덮어쓰기, 과거 달 행은 건드리지 않는다.
+- **첫 예산 소급 (2026-10-20 추가 결정)**: 그 카테고리에 budgets 행이 하나도 없을 때의 첫 저장은 `effective_from = min(사용자의 가장 오래된 거래 월, 이번 달)`. 명세서는 월이 지난 뒤 올리므로 이미 올라온 과거 달도 바로 예산과 비교하게 한다. 카테고리별 판단, 해제(null)에는 적용하지 않음.
+- **저장(PUT)**: 위 경우를 제외하면 `effective_from = 이번 달(Asia/Seoul)` 로 upsert(`ON CONFLICT (user_id, category, effective_from) DO UPDATE`). 같은 달 재수정은 덮어쓰기, 과거 달 행은 건드리지 않는다.
 - **해제**: `amount = NULL` 행을 이번 달로 upsert. 과거 달 진행률은 당시 예산으로 계속 보인다.
 - 허용 카테고리: `_total` + `CATEGORIES` 중 `NON_SPENDING_CATEGORIES`(transfer, savings)와 `income`을 뺀 나머지. 그 외는 400 `INVALID_CATEGORY`.
 - `amount` 검증: NULL 또는 1 이상 정수(상한 10^12 미만). 위반 시 422(Pydantic).

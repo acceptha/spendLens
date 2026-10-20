@@ -153,3 +153,49 @@ async def test_invalid_month_400_and_auth_required(test_db_pool, today):
         assert (await ac.get("/budgets/status?month=2026-10")).status_code == 401
         r = await ac.put("/budgets", json={"category": "coffee", "amount": 1})
         assert r.status_code == 401
+
+
+async def test_first_budget_applies_back_to_earliest_data_month(test_db_pool, today):
+    # 명세서는 월이 지난 뒤 올리므로, 처음 정한 예산은 이미 올라온 과거 달에도 보여야 한다.
+    async with await _client() as ac:
+        h, email = await _signup(ac)
+        await _txn(test_db_pool, email, "2026-08-15", 30000, "coffee")
+        await ac.put("/budgets", headers=h, json={"category": "coffee", "amount": 50000})
+
+        for m in ("2026-08", "2026-09", "2026-10"):
+            items = (await ac.get(f"/budgets/status?month={m}", headers=h)).json()["items"]
+            assert [float(i["budget"]) for i in items] == [50000], m
+        assert (await ac.get("/budgets/status?month=2026-07", headers=h)).json()["items"] == []
+
+        # 이후 변경은 이번 달부터 — 과거 달은 첫 예산 그대로
+        await ac.put("/budgets", headers=h, json={"category": "coffee", "amount": 70000})
+        aug = (await ac.get("/budgets/status?month=2026-08", headers=h)).json()["items"]
+        octo = (await ac.get("/budgets/status?month=2026-10", headers=h)).json()["items"]
+        assert float(aug[0]["budget"]) == 50000
+        assert float(octo[0]["budget"]) == 70000
+
+
+async def test_retroactive_start_is_per_category(test_db_pool, today):
+    async with await _client() as ac:
+        h, email = await _signup(ac)
+        await _txn(test_db_pool, email, "2026-08-15", 30000, "coffee")
+        await ac.put("/budgets", headers=h, json={"category": "_total", "amount": 500000})
+        # 나중에 처음 추가하는 카테고리도 첫 예산이므로 과거 달까지 적용
+        await ac.put("/budgets", headers=h, json={"category": "coffee", "amount": 50000})
+        cats = [i["category"] for i in
+                (await ac.get("/budgets/status?month=2026-08", headers=h)).json()["items"]]
+        assert cats == ["_total", "coffee"]
+
+
+async def test_reenabling_after_clear_starts_this_month(test_db_pool, today):
+    async with await _client() as ac:
+        h, email = await _signup(ac)
+        await _txn(test_db_pool, email, "2026-08-15", 30000, "coffee")
+        await ac.put("/budgets", headers=h, json={"category": "coffee", "amount": 50000})
+        await ac.put("/budgets", headers=h, json={"category": "coffee", "amount": None})
+        await ac.put("/budgets", headers=h, json={"category": "coffee", "amount": 60000})
+        aug = (await ac.get("/budgets/status?month=2026-08", headers=h)).json()["items"]
+        octo = (await ac.get("/budgets/status?month=2026-10", headers=h)).json()["items"]
+        # 첫 기록은 그대로 — 같은 달 해제·재설정은 이번 달 행만 덮어쓴다
+        assert float(aug[0]["budget"]) == 50000
+        assert float(octo[0]["budget"]) == 60000
