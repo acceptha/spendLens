@@ -68,4 +68,9 @@ describe("TransactionList", () => {
     render(<TransactionList items={[makeTxn({})]} />);
     expect(screen.queryByRole("button", { name: /삭제/ })).toBeNull();
   });
+
+  it("marks manually entered transactions", () => {
+    render(<TransactionList items={[makeTxn({ source_type: "manual" }), makeTxn({ id: "t2" })]} />);
+    expect(screen.getAllByText("직접 입력")).toHaveLength(1);
+  });
 });

@@ -19,7 +19,7 @@ vi.mock("../lib/api", () => ({
   fetchCashflowByMonth: vi.fn(), fetchByEssential: vi.fn(), fetchTopMerchants: vi.fn(),
   fetchInsight: vi.fn(), generateInsight: vi.fn(),
   patchCategory: patchCategoryMock, patchEssential: vi.fn(),
-  applyCategoryToMerchant: applyMock, api: { post: vi.fn() },
+  applyCategoryToMerchant: applyMock, createTransaction: vi.fn(), api: { post: vi.fn() },
 }));
 
 import { AppPage } from "./app";
