@@ -78,6 +78,12 @@
 - 온디맨드 생성 후 `monthly_insights` 테이블에 캐시("다시 생성"은 캐시 무시 강제 재생성).
 - **LLM/룰 자동 폴백**: `ANTHROPIC_API_KEY`가 설정돼 있으면 Claude Haiku로 생성(분류와 동일 예산 버킷 공유, 초과 시 503). **키가 없거나(placeholder) LLM 호출이 실패하면(무효 키·네트워크·파싱 등) 집계 기반 룰 생성기**(`insights/rules.py`)로 동일 형태 인사이트를 만든다 — 어떤 상황에서도 인사이트는 생성됨, 룰 경로는 비용 0.
 
+### 3.8 월 예산 (W7)
+- **총 지출 한도 + 카테고리별 한도**를 정하면 매달 반복 적용. 변경은 **이번 달(KST)부터** 적용되고 지난달은 당시 예산 그대로(`budgets.effective_from` 행, 금액 NULL = 해제).
+- 사용액은 저장하지 않고 조회 시 집계 — 대시보드와 같은 규칙(출금, effective_category, 이체·저축 제외). 수입·이체·저축은 예산 대상 아님.
+- 진행률 + **월말 예상**(이번 달만: 사용액 ÷ 경과일 × 월 일수) + 상태: `over`(100% 이상) / `warn`(80% 이상 또는 예상 초과) / `ok`.
+- `/budget` 탭에서 설정·편집·추가(지난달은 읽기 전용), 대시보드 카드에 총액 진행률과 주의/초과 카테고리 최대 3개. 거래 업로드·삭제·수정 시 자동 갱신.
+
 ### 3.7 게스트 데모
 - `/guest` — 로그인 없이 시드 사용자(김지철)의 한 달 거래로 분류·라벨을 미리 체험.
 
@@ -106,10 +112,12 @@
 | GET | `/dashboard/cashflow-by-month` | 월별 지출 vs 수입(`last_n`) | ✓ |
 | GET | `/dashboard/by-essential` | 필수/비필수 집계 | ✓ |
 | GET | `/dashboard/top-merchants` | Top 가맹점(`limit`) | ✓ |
+| GET | `/budgets/status?month=YYYY-MM` | 월 예산 현황(예산·사용액·비율·월말 예상·상태) | ✓ |
+| PUT | `/budgets` | 예산 설정 `{category, amount}`(이번 달부터, null=해제, `_total`=총액) | ✓ |
 | GET | `/insights?month=YYYY-MM` | 캐시된 월간 인사이트(없으면 null) | ✓ |
 | POST | `/insights/generate` | 인사이트 생성/재생성(`?force`, body `{month}`) | ✓ |
 
-주요 에러 코드: `INVALID_CREDENTIALS`, `WEAK_PASSWORD`, `EMAIL_ALREADY_EXISTS`, `TOO_MANY_REQUESTS`, `INVALID_FILE_TYPE`, `NOT_FOUND`, `INVALID_MONTH_FORMAT`, `INVALID_LAST_N`, `BUDGET_EXCEEDED`(503), `INSIGHT_GENERATION_FAILED`(502).
+주요 에러 코드: `INVALID_CREDENTIALS`, `WEAK_PASSWORD`, `EMAIL_ALREADY_EXISTS`, `TOO_MANY_REQUESTS`, `INVALID_FILE_TYPE`, `NOT_FOUND`, `INVALID_MONTH_FORMAT`, `INVALID_LAST_N`, `INVALID_CATEGORY`, `BUDGET_EXCEEDED`(503), `INSIGHT_GENERATION_FAILED`(502).
 
 ---
 
@@ -121,6 +129,7 @@
 | `/guest` | 게스트 데모 | 로그인 없이 시드 거래 열람 |
 | `/login`, `/signup` | 인증 | |
 | `/app` | 내 거래 | 업로드 + 필터바(월/검색/카테고리) + 거래 리스트(카테고리·essential 토글) |
+| `/budget` | 예산 | 총액·카테고리별 월 예산 설정, 진행률·월말 예상·주의/초과 |
 | `/dashboard` | 대시보드 | 월간 인사이트 + 지표 + 현금흐름·카테고리·필수/비필수 차트 + Top 가맹점 |
 
 `/app`·`/dashboard`는 `ProtectedRoute`로 보호(부팅 시 토큰 재수화 후 판정). 서버 상태는 전부 TanStack Query(`lib/queries.ts`의 쿼리 키 팩토리 + useQuery/useMutation 훅)로 관리.
