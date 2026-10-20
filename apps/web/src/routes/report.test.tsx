@@ -76,4 +76,14 @@ describe("ReportPage", () => {
     await waitFor(() => expect(fetchReportMock).toHaveBeenCalledWith("2026-08"));
     expect(await screen.findByText("2026년 8월 결산")).toBeInTheDocument();
   });
+
+  it("does not compare against a month with no records", async () => {
+    fetchReportMock.mockResolvedValue({
+      ...full, available_months: ["2026-09"],
+      summary: { ...full.summary!, prev_spent: "0", spent_diff_pct: null },
+    });
+    setup();
+    expect(await screen.findByText("비교할 전월 기록이 없어요")).toBeInTheDocument();
+    expect(screen.queryByText("커피 +₩32,000")).toBeNull();
+  });
 });
