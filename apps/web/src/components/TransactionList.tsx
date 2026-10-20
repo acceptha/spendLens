@@ -21,7 +21,7 @@ export function TransactionList({ items, onCategoryChange, onEssentialChange, on
           <div className="flex justify-between items-start gap-3">
             <span className="min-w-0 break-words">
               {t.txn_date} · {t.merchant_raw}
-              {t.is_canceled && <span className="ml-2 text-red-400 text-xs">[Canceled]</span>}
+              {t.is_canceled && <span className="ml-2 text-red-400 text-xs">[취소]</span>}
             </span>
             <span className="font-mono whitespace-nowrap shrink-0">{Number(t.amount).toLocaleString()}원</span>
           </div>

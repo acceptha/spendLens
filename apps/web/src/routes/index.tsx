@@ -8,7 +8,7 @@ export function LandingPage() {
         광고 없는 가계부 · 데이터는 내 서버 · AI 코칭
       </p>
       <div className="flex gap-4">
-        <Link to="/guest" className="px-6 py-3 bg-blue-600 rounded">▶ Guest Demo</Link>
+        <Link to="/guest" className="px-6 py-3 bg-blue-600 rounded">▶ 로그인 없이 체험하기</Link>
         <Link to="/login" className="px-6 py-3 border border-zinc-600 rounded">로그인</Link>
       </div>
     </div>

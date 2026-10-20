@@ -6,6 +6,7 @@ import { TransactionList } from "../components/TransactionList";
 import { FilterBar } from "../components/FilterBar";
 import { SameMerchantBanner, type SameMerchantOffer } from "../components/SameMerchantBanner";
 import { useDebouncedValue } from "../lib/useDebouncedValue";
+import { uploadErrorMessage, uploadSuccessMessage } from "../lib/uploadMessages";
 import {
   useTransactions,
   useUploadStatement,
@@ -77,18 +78,15 @@ export function AppPage() {
   if (upload.isPending) {
     msg = "업로드 중...";
   } else if (upload.isError) {
-    const detail =
-      (upload.error as { response?: { data?: { detail?: unknown } } })?.response?.data
-        ?.detail ?? (upload.error as Error).message;
-    msg = `실패: ${JSON.stringify(detail)}`;
+    msg = uploadErrorMessage(upload.error);
   } else if (upload.isSuccess) {
-    msg = `업로드 ${upload.data.uploaded}건, dedup ${upload.data.skipped}건`;
+    msg = uploadSuccessMessage(upload.data);
   }
 
   return (
     <div className="min-h-screen">
       <div className="max-w-3xl mx-auto p-4 sm:p-8">
-        <h2 className="text-2xl mb-4">My Transactions</h2>
+        <h2 className="text-2xl mb-4">거래내역</h2>
         <UploadDropzone onFile={(file) => upload.mutate(file)} />
         {msg && <p className="my-4 text-sm text-zinc-400">{msg}</p>}
       </div>

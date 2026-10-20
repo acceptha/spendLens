@@ -31,7 +31,7 @@ describe("TransactionList", () => {
     expect(screen.getByText(/\[커피\]/)).toBeInTheDocument();  // no onCategoryChange → 텍스트 칩
   });
 
-  it("shows Canceled badge", () => {
+  it("shows canceled badge in Korean", () => {
     const items: Txn[] = [
       makeTxn({
         id: "t2",
@@ -45,7 +45,7 @@ describe("TransactionList", () => {
       }),
     ];
     render(<TransactionList items={items} />);
-    expect(screen.getByText("[Canceled]")).toBeInTheDocument();
+    expect(screen.getByText("[취소]")).toBeInTheDocument();
   });
 
   it("deletes only after the user confirms", () => {

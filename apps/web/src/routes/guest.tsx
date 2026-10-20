@@ -9,7 +9,7 @@ export function GuestPage() {
   }, []);
   return (
     <div className="p-4 sm:p-8 max-w-3xl mx-auto">
-      <h2 className="text-2xl mb-4">Guest Demo · 김지출의 한 달</h2>
+      <h2 className="text-2xl mb-4">체험하기 · 김지출의 한 달</h2>
       <TransactionList items={txns} />
     </div>
   );
