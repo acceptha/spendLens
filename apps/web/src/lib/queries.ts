@@ -20,6 +20,7 @@ import {
   patchEssential,
   deleteTransaction,
   fetchBudgetStatus,
+  fetchMonthlyReport,
   putBudget,
   api,
   type TransactionRow,
@@ -46,6 +47,7 @@ export const qk = {
   },
   insight: (month: string) => ["insight", month] as const,
   budget: (month: string) => ["budget", month] as const,
+  report: (month: string | undefined) => ["report", month ?? "default"] as const,
 };
 
 // --- 읽기 훅 ---
@@ -121,6 +123,10 @@ export function useBudgetStatus(month: string | undefined) {
   });
 }
 
+export function useMonthlyReport(month: string | undefined) {
+  return useQuery({ queryKey: qk.report(month), queryFn: () => fetchMonthlyReport(month) });
+}
+
 // --- mutation 훅 ---
 
 const CATEGORY_MUTATION_KEY = ["override-category"] as const;
@@ -176,6 +182,7 @@ export function useCategoryOverride() {
         // 서버가 해당 월 인사이트 캐시를 지운다(DB 트리거) → 다시 조회해 "생성" 상태로.
         qc.invalidateQueries({ queryKey: ["insight"] });
         qc.invalidateQueries({ queryKey: ["budget"] });
+        qc.invalidateQueries({ queryKey: ["report"] });
       }
     },
   });
@@ -204,6 +211,7 @@ export function useEssentialOverride() {
         // 서버가 해당 월 인사이트 캐시를 지운다(DB 트리거) → 다시 조회해 "생성" 상태로.
         qc.invalidateQueries({ queryKey: ["insight"] });
         qc.invalidateQueries({ queryKey: ["budget"] });
+        qc.invalidateQueries({ queryKey: ["report"] });
       }
     },
   });
@@ -218,6 +226,7 @@ export function useApplyToMerchant() {
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["insight"] });
       qc.invalidateQueries({ queryKey: ["budget"] });
+      qc.invalidateQueries({ queryKey: ["report"] });
     },
   });
 }
@@ -244,6 +253,7 @@ export function useDeleteTransaction() {
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["insight"] });
       qc.invalidateQueries({ queryKey: ["budget"] });
+      qc.invalidateQueries({ queryKey: ["report"] });
     },
   });
 }
@@ -255,6 +265,7 @@ export function useSaveBudget() {
       putBudget(category, amount),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["budget"] });
+      qc.invalidateQueries({ queryKey: ["report"] });
     },
   });
 }
@@ -277,6 +288,7 @@ export function useUploadStatement() {
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["insight"] });
       qc.invalidateQueries({ queryKey: ["budget"] });
+      qc.invalidateQueries({ queryKey: ["report"] });
     },
   });
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, DonutChart, Title } from "@tremor/react";
 import { InsightCard } from "../components/InsightCard";
 import { BudgetSummaryCard } from "../components/BudgetSummaryCard";
@@ -60,6 +60,11 @@ export function DashboardPage() {
           className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm" aria-label="월 선택">
           {months.map((m) => (<option key={m} value={m}>{m}</option>))}
         </select>
+        {month && (
+          <Link to={`/report?month=${month}`} className="text-sm text-zinc-400 hover:text-white">
+            이 달 결산 보기 →
+          </Link>
+        )}
       </div>
 
       {isLoading ? (
