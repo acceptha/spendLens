@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -14,6 +15,7 @@ from app.parsers.xls import is_xls, xls_to_xlsx
 from app.transactions.schemas import (
     ApplyToMerchantResponse,
     EssentialPatchRequest,
+    ManualTransactionRequest,
     TransactionOut,
     TransactionPatchRequest,
     TransactionPatchResponse,
@@ -21,9 +23,11 @@ from app.transactions.schemas import (
 )
 from app.transactions.service import (
     apply_category_to_merchant,
+    insert_manual,
     insert_transactions,
     remove_transaction,
     same_merchant_pending,
+    today_kst,
     update_category,
     update_essential,
 )
@@ -35,6 +39,36 @@ _MAX_FILE_BYTES = 10 * 1024 * 1024  # 10MB
 _ALLOWED_EXTS = (".xlsx", ".xls")
 _ALLOWED_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 _MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
+
+
+# TransactionOut 한 행을 만드는 SELECT 컬럼 — 목록·직접 입력 응답이 같은 모양이 되도록 공유.
+_TXN_COLUMNS = """
+    id::text, txn_date, txn_time, amount, merchant_raw, merchant_normalized,
+    approval_no, card_last4, installment_months, is_canceled,
+    category, source_type,
+    category AS auto_category,
+    user_category_override,
+    COALESCE(user_category_override, category) AS effective_category,
+    essential_override,
+    CASE WHEN essential_override IS NOT NULL THEN essential_override
+         ELSE (COALESCE(user_category_override, category) = ANY({essential_param}::text[]))
+    END AS effective_essential
+"""
+
+# 고정 상수끼리만 결합(사용자 입력 없음) → S608 오탐.
+_LIST_SQL = "SELECT " + _TXN_COLUMNS.format(essential_param="$7") + """
+    FROM transactions
+    WHERE user_id = $1
+      AND ($2::text IS NULL OR to_char(txn_date, 'YYYY-MM') = $2)
+      AND ($3::text[] IS NULL OR COALESCE(user_category_override, category) = ANY($3))
+      AND ($4::text IS NULL OR merchant_raw ILIKE '%' || $4 || '%')
+    ORDER BY txn_date DESC, txn_time DESC NULLS LAST, created_at DESC
+    LIMIT $5 OFFSET $6
+"""  # noqa: S608
+_ONE_SQL = (
+    "SELECT " + _TXN_COLUMNS.format(essential_param="$2")  # noqa: S608
+    + " FROM transactions WHERE id = $1"
+)
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -137,25 +171,7 @@ async def list_transactions(
 
     async with acquire() as conn:
         rows = await conn.fetch(
-            """
-            SELECT id::text, txn_date, txn_time, amount, merchant_raw, merchant_normalized,
-                   approval_no, card_last4, installment_months, is_canceled,
-                   category,
-                   category AS auto_category,
-                   user_category_override,
-                   COALESCE(user_category_override, category) AS effective_category,
-                   essential_override,
-                   CASE WHEN essential_override IS NOT NULL THEN essential_override
-                        ELSE (COALESCE(user_category_override, category) = ANY($7::text[]))
-                   END AS effective_essential
-            FROM transactions
-            WHERE user_id = $1
-              AND ($2::text IS NULL OR to_char(txn_date, 'YYYY-MM') = $2)
-              AND ($3::text[] IS NULL OR COALESCE(user_category_override, category) = ANY($3))
-              AND ($4::text IS NULL OR merchant_raw ILIKE '%' || $4 || '%')
-            ORDER BY txn_date DESC, txn_time DESC NULLS LAST, created_at DESC
-            LIMIT $5 OFFSET $6
-            """,
+            _LIST_SQL,
             user_id, month, categories, search, limit, offset,
             list(ESSENTIAL_CATEGORIES),
         )
@@ -211,3 +227,33 @@ async def delete_transaction(
         deleted = await remove_transaction(conn, user_id, transaction_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="NOT_FOUND")
+
+
+@router.post("", response_model=TransactionOut, status_code=201)
+async def create_transaction(
+    req: ManualTransactionRequest,
+    user_id: UUID = Depends(current_user_id),  # noqa: B008
+) -> TransactionOut:
+    if req.txn_date > today_kst():
+        raise HTTPException(status_code=400, detail="FUTURE_DATE")
+
+    if req.category is not None:
+        category = req.category
+    elif req.kind == "income":
+        category = "income"
+    else:
+        async with acquire() as conn:
+            learned = await learned_categories(conn, user_id)
+        category = learned.get(normalize_merchant(req.merchant)) or await classify_category(
+            req.merchant
+        )
+
+    # 기존 규칙: 지출(출금)은 양수, 수입(입금)은 음수
+    amount = Decimal(req.amount if req.kind == "expense" else -req.amount)
+    async with acquire() as conn:
+        txn_id = await insert_manual(
+            conn, user_id, txn_date=req.txn_date, amount=amount,
+            merchant=req.merchant, category=category,
+        )
+        row = await conn.fetchrow(_ONE_SQL, txn_id, list(ESSENTIAL_CATEGORIES))
+    return TransactionOut(**dict(row))

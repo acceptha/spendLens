@@ -1,8 +1,9 @@
 import hashlib
 import json
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
-from uuid import UUID
+from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 import asyncpg
 
@@ -193,3 +194,34 @@ async def apply_category_to_merchant(
         user_id, transaction_id,
     )
     return len(rows)
+
+
+def today_kst() -> date:
+    return datetime.now(ZoneInfo("Asia/Seoul")).date()
+
+
+async def insert_manual(
+    conn: asyncpg.Connection,
+    user_id: UUID,
+    *,
+    txn_date: date,
+    amount: Decimal,
+    merchant: str,
+    category: str,
+) -> UUID:
+    """직접 입력 거래 1건 저장. source_type='manual'.
+
+    업로드 dedup 대상이 아니다 — 같은 날 같은 금액을 두 번 써도 둘 다 기록돼야 하므로
+    dedup_hash는 매번 고유값.
+    """
+    return await conn.fetchval(
+        """
+        INSERT INTO transactions (
+          user_id, source_type, txn_date, amount, merchant_raw, merchant_normalized,
+          category, dedup_hash, raw_row
+        ) VALUES ($1, 'manual', $2, $3, $4, $5, $6, $7, '{}'::jsonb)
+        RETURNING id
+        """,
+        user_id, txn_date, amount, merchant, normalize_merchant(merchant), category,
+        f"manual:{uuid4()}",
+    )
