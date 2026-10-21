@@ -3,7 +3,7 @@
 > 광고 없는 가계부 · AI 코칭 · 데이터는 내 서버
 
 ## Status
-**W5 complete** — 프론트 TanStack Query 전면 전환(캐시·낙관적 갱신·검색 debounce), 부팅 시 인증 재수화. (W4: 월간 LLM 인사이트 + 룰 기반 폴백 · 입금/소득 분석 · 필수/비필수 토글 / W3: 본인 모드 UI · Tremor 대시보드 · 카테고리 19종 · 통장 룰북)
+**W8 complete** — 월 결산 리포트(집계 · 예산 성적표 · 전월 대비 증감 Top 3), 현금 거래 직접 입력. (W7: 월 예산 목표 + 초과 경고 · 수정 학습 기반 자동 분류 · 레거시 `.xls` 지원 / W6: 가맹점 정규화 · 설치형 PWA · 거래 삭제 · 일일 DB 백업 · 가동 확인 / W5: TanStack Query 전면 전환 / W4: 월간 LLM 인사이트 + 룰 기반 폴백 / W3: Tremor 대시보드 · 카테고리 19종 · 통장 룰북)
 
 > 전체 기능 · 아키텍처 · API 레퍼런스는 **[`docs/FEATURES.md`](docs/FEATURES.md)** 참고.
 
@@ -24,18 +24,18 @@ Live:
 - AI: Claude Haiku 4.5 (카테고리 분류 + 월간 인사이트, 월 예산 cap). 키 없거나 호출 실패 시 룰 기반 인사이트로 폴백.
 - Deploy: Vercel + AWS Lightsail (Docker Compose + Caddy + PostgreSQL + Redis) + GitHub Actions
 
-## 지원 명세서 포맷 (W3 기준)
+## 지원 명세서 포맷
 - **삼성카드** XLSX (`■ 국내이용내역` 시트)
 - **우리카드** XLSX (`이용대금명세서 상세 내역`)
 - **하나은행 통장** XLSX (`거래내역조회` — 출금/입금 양쪽, 적요 기반 자동 분류)
 
-`.xls` (구버전 Excel binary)는 사용자 머신에서 Excel/LibreOffice로 `.xlsx`로 변환 후 업로드.
+`.xls` (구버전 Excel binary)도 그대로 업로드 가능 — 서버가 메모리상에서 `.xlsx`로 변환한 뒤 같은 파서를 사용 (`parsers/xls.py`).
 
 ## 카테고리 분류 (19개)
 - 카드 지출: coffee · lunch · dinner · snack_late · groceries · transport · telecom · subscription · entertainment · health · shopping · utilities · etc · unknown
 - W3 통장: **savings · insurance · income · transfer · housing**
 
-분류 흐름: 룰북 정규식 → Redis 캐시 → Claude Haiku LLM → "unknown". 사용자가 거래의 카테고리 칩을 클릭해 직접 수정하면 `user_category_override`로 영구 저장 (재업로드해도 보존).
+분류 흐름: 수정 학습(같은 가맹점에 사용자가 고친 카테고리) → 룰북 정규식 → Redis 캐시 → Claude Haiku LLM → "unknown". 사용자가 거래의 카테고리 칩을 클릭해 직접 수정하면 `user_category_override`로 영구 저장 (재업로드해도 보존).
 
 ## Repo Layout
 ```
